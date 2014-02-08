@@ -5,11 +5,12 @@ from numpy import matrix, array
 from OpenGL.arrays import vbo #wrapper for vertex buffer objects
 from OpenGL.GL import shaders #convenience lib for working with shaders
 from sdl2 import *
-from gl_helpers.vao import *
+from glhelpers import *
+from model import *
 
-class Renderer():
+class Renderer(object):
 
-    entityRenderers = {'box':'boxRenderer'}
+    modelRenderers = {MODEL_BOX:'boxRenderer'}
 
     def __init__(self, winWidth=800, winHeight=600):
         self.winWidth = winWidth
@@ -31,20 +32,33 @@ class Renderer():
         glCullFace(GL_BACK)
         glFrontFace(GL_CW)
 
-        self.worldToCamMat = self.getWorldToCamMat()
+        # SDL_GL_SetSwapInterval(0) # disable v-sync
 
-        self.boxRenderer = BoxRenderer(self.worldToCamMat)
+        self.camToClipMat = self.getCamToClipMat()
 
-    def getWorldToCamMat(self):
-        mat = matrix([[0]*4]*4, 'f4')
-        mat[0,0] = 1.0/self.winWidth
-        mat[1,1] = 1.0/self.winHeight
-        mat[3,3] = 1
+        self.boxRenderer = BoxRenderer(self.camToClipMat)
+
+    def getCamToClipMat(self):
+        mat = identityMatrix()
+        mat[0,0] = 2.0/self.winWidth
+        mat[1,1] = 2.0/self.winHeight
         return mat
 
-    def draw(self, entity):
-        entRenderer =  getattr(self, self.entityRenderers[entity.type])
-        return entRenderer.draw(entity.modelToWorldMat)
+    def draw(self, scene):
+        self.swapBuffer()
+        for renderer, models in self.buildRenderingQueue(scene).iteritems():
+            modelRenderer = getattr(self, self.modelRenderers[renderer])
+            return modelRenderer.drawModels(models)
+
+    def buildRenderingQueue(self, scene):
+        queue = dict()
+        for o in scene.gameObjects:
+            try: 
+                try: queue[o['model'].type].append(o['model'])
+                except: queue[o['model'].type] = [o['model']]
+            except: pass
+
+        return queue
 
     def swapBuffer(self):
         SDL_GL_SwapWindow(self.window)
@@ -55,10 +69,10 @@ class BoxRenderer():
 
     description = array([
          #coordinates
-        -1, -1, 0, 1,
-        -1,  1, 0, 1,
-         1,  1, 0, 1,
-         1, -1, 0, 1,
+        -1, -1, 0,
+        -1,  1, 0,
+         1,  1, 0,
+         1, -1, 0,
          #colours
          1, 1, 1, 1,
          1, 1, 1, 1,
@@ -71,8 +85,8 @@ class BoxRenderer():
         0, 2, 3
         ], 'u2')
 
-    def __init__(self, worldToCamMat):
-        self.worldToCamMat = worldToCamMat
+    def __init__(self, camToClipMat):
+        self.camToClipMat = camToClipMat
 
         self.program = compileProgram(
             "shaders/boxvs.glsl", "shaders/boxfs.glsl")
@@ -82,11 +96,11 @@ class BoxRenderer():
             self.idxBuff = vbo.VBO(self.indices, 
                 target="GL_ELEMENT_ARRAY_BUFFER")
 
-            self.modelToWorldMatUnif = glGetUniformLocation(
-                self.program, "modelToWorldMat")
-            self.worldToCamMatUnif = glGetUniformLocation(
-                self.program, "worldToCamMat")
-            glUniformMatrix4fv(self.worldToCamMatUnif, 1, True, worldToCamMat)
+            self.modelToCamMatUnif = glGetUniformLocation(
+                self.program, "modelToCamMat")
+            self.camToClipMatUnif = glGetUniformLocation(
+                self.program, "camToClipMat")
+            glUniformMatrix4fv(self.camToClipMatUnif, 1, True, camToClipMat)
             
             self.vao = VAO()
             
@@ -94,19 +108,25 @@ class BoxRenderer():
                 self.descrBuff.bind()
                 glEnableVertexAttribArray(0)
                 glEnableVertexAttribArray(1)
-                glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 
                     self.descrBuff)
                 glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 
-                    self.descrBuff+4*4*4)
+                    self.descrBuff+3*4*4)
 
                 self.idxBuff.bind()
 
     def draw(self, matrix):
+        glUniformMatrix4fv(self.modelToCamMatUnif, 1, True, matrix)
+        glDrawElements(GL_TRIANGLES, len(self.indices), 
+            GL_UNSIGNED_SHORT, self.idxBuff)
+
+    def drawModels(self, models):
         with self.program:
-            glUniformMatrix4fv(self.modelToWorldMatUnif, 1, True, matrix)
             with self.vao:
-                glDrawElements(GL_TRIANGLES, len(self.indices), 
-                    GL_UNSIGNED_SHORT, 0)
+                for m in models:
+                    self.draw(m.modelToWorldMat)
+
+
 
 
 def compileProgram(vertShaderFile, fragShaderFile):

@@ -1,5 +1,8 @@
 #!/usr/bin/env python2
 
+from OpenGL.GL import *
+from numpy import matrix
+
 '''Usage:
 
 vao = VAO()
@@ -23,3 +26,10 @@ class VAO():
 
     def unbind(self):
         glBindVertexArray(0)
+
+def identityMatrix():
+    mat = matrix([[0]*4]*4, 'f4')
+    for i in range(4):
+        mat[i,i] = 1
+
+    return mat
