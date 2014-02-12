@@ -10,6 +10,7 @@ class Renderer(object):
     modelRenderers = {
         MODEL_BOX:'boxRenderer',
         MODEL_FPS:'FPSRenderer',
+        MODEL_CIRCLE:'circleRenderer'
     }
 
     def __init__(self, winWidth=800, winHeight=600):
@@ -46,6 +47,7 @@ class Renderer(object):
 
         self.boxRenderer = BoxRenderer(self)
         self.FPSRenderer = FPSRenderer(self)
+        self.circleRenderer = CircleRenderer(self)
 
     def getCamToClipMat(self):
         mat = identityMatrix()
@@ -80,9 +82,10 @@ class Renderer(object):
             # call onDraw methods if implemented
             try: map(models[0].__class__.onDraw, models)
             except: pass
+            
 
             modelRenderer = getattr(self, self.modelRenderers[renderer])
-            return modelRenderer.drawModels(models)
+            modelRenderer.drawModels(models)
 
     def buildRenderingQueue(self, scene):
         queue = dict()
@@ -91,7 +94,6 @@ class Renderer(object):
                 try: queue[o['model'].type].append(o['model'])
                 except: queue[o['model'].type] = [o['model']]
             except: pass
-
         return queue
 
     def swapBuffer(self):
