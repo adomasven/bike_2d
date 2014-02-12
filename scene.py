@@ -1,16 +1,34 @@
 #!/usr/bin/env python2
 
-class Scene(object):
+from view import View
+from entityfactory import *
 
-    def __init__(self, game):
-        self.game = game
-        self.gameObjects = []
+class Scene(View):
+    def __init__(self):
+        super(Scene, self).__init__()
 
-        entFact = game.entityFactory
-        self.gameObjects.append(entFact.CreateNewPlayer())
-        self.gameObjects.append(
+        self.sim_dt = 1000.0 / 100.0 #100 per second
+        self.timeAcc = 0
+
+        entFact = EntityFactory
+        self.viewObjects.append(entFact.CreateNewPlayer())
+        self.viewObjects.append(
             entFact.CreateNewLevelBlock(-200, -200, 400, 20))
 
-    def update(self, dt):
-        for o in self.gameObjects:
-            o.update(dt)
+    def update(self):
+        updated = False
+        a = self.allowUpdate()
+        while a.next():
+            super(Scene, self).update(self.sim_dt)
+            updated = True
+        return updated
+
+
+    def allowUpdate(self):
+        dt = self.getDt()
+        if(dt > self.sim_dt*5): dt = self.sim_dt*5
+        self.timeAcc += dt
+        while(self.timeAcc >= self.sim_dt):
+            self.timeAcc -= self.sim_dt
+            yield True
+        yield False

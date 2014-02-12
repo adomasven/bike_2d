@@ -251,19 +251,14 @@ class Vec2d(Component, object):
         self.y *= value/length
     length = property(get_length, __setlength, None, "gets or sets the magnitude of the vector")
  
-    def rotate(self, angle_degrees):
-        radians = math.radians(angle_degrees)
-        cos = math.cos(radians)
-        sin = math.sin(radians)
-        x = self.x*cos - self.y*sin
-        y = self.x*sin + self.y*cos
-        self.x = x
-        self.y = y
+    def rotate(self, angle):
+        new = self.rotated(angle)
+        self.x, self.y = new.x, new.y
  
-    def rotated(self, angle_degrees):
-        radians = math.radians(angle_degrees)
-        cos = math.cos(radians)
-        sin = math.sin(radians)
+    def rotated(self, angle):
+        if(angle == 0): return self
+        cos = math.cos(angle)
+        sin = math.sin(angle)
         x = self.x*cos - self.y*sin
         y = self.x*sin + self.y*cos
         return Vec2d(x, y)
@@ -271,17 +266,17 @@ class Vec2d(Component, object):
     def get_angle(self):
         if (self.get_length_sqrd() == 0):
             return 0
-        return math.degrees(math.atan2(self.y, self.x))
-    def __setangle(self, angle_degrees):
+        return math.atan2(self.y, self.x)
+    def __setangle(self, angle):
         self.x = self.length
         self.y = 0
-        self.rotate(angle_degrees)
+        self.rotate(angle)
     angle = property(get_angle, __setangle, None, "gets or sets the angle of a vector")
  
     def get_angle_between(self, other):
         cross = self.x*other[1] - self.y*other[0]
         dot = self.x*other[0] + self.y*other[1]
-        return math.degrees(math.atan2(cross, dot))
+        return math.atan2(cross, dot)
  
     def normalized(self):
         length = self.length

@@ -3,8 +3,7 @@
 from sdl2 import timer
 
 class View(object):
-    def __init__(self, game):
-        self.game = game
+    def __init__(self):
         self.time = timer.SDL_GetTicks()
         self.viewObjects = []
 
@@ -12,7 +11,7 @@ class View(object):
         if not dt: dt = self.getDt()
 
         for o in self.viewObjects:
-            o.update(dt)
+            o.update(dt / 1000)
 
     def getDt(self):
         newTime = timer.SDL_GetTicks()

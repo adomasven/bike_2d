@@ -2,44 +2,29 @@
 
 from scene import *
 from renderer import Renderer
-from entityfactory import *
+from hud import *
+from collision import *
 import sdl2.ext as sdl2ext
 from sdl2 import *
 
-FPSCAP = 60.0
-SIM_DT = 1000.0 / 100.0
-
 class Game():
-    renderer = Renderer(800, 600)
-    simTimeAcc = 0.0
-    rendTimeAcc = 0.0
-    running = True
     
     def __init__(self):
-        self.entityFactory = EntityFactory(self)
-        self.scene = Scene(self)
-        self.currTime = SDL_GetTicks()
+        SDL_Init(SDL_INIT_VIDEO)
+
+        self.scene = Scene()
+        self.hud = HUD()
+        self.renderer = Renderer(800, 600)
 
     def run(self):
+        self.running = True
         while self.running:
             self.events = self.getSDLEvents()
 
-            newTime = SDL_GetTicks()
-            frameTime = newTime - self.currTime
-            self.currTime = newTime
-            self.simTimeAcc += frameTime
-            self.rendTimeAcc += frameTime
-
-            # simulate with fixed time change
-            while(self.simTimeAcc >= SIM_DT):
-                self.simTimeAcc -= SIM_DT
-                self.scene.update(SIM_DT)
-
-            # render keeping fixed frames per second
-            while(self.rendTimeAcc >= 1000 / FPSCAP):
-                self.rendTimeAcc -= 1000/FPSCAP
-                self.rendTimeAcc -= self.rendTimeAcc * FPSCAP
-                self.renderer.draw(self.scene)
+            if(self.scene.update()):
+                CollisionResolver.resolveCollisions(self.scene.viewObjects)
+            self.hud.update()
+            self.renderer.draw([self.scene, self.hud])
 
             if SDL_QUIT in self.events: self.running = False
 
