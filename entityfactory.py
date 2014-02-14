@@ -1,21 +1,24 @@
 #!/usr/bin/env python2
 
 from entity import *
+from math import radians
 
 class EntityFactory(object):
     
     @staticmethod
-    def CreateNewPlayer(x=0, y=0, w=10, h=10):
+    def CreateNewPlayer(evtMngr, x=-200, y=0, w=10, h=10):
         e = EntityFactory.CreateNewCircle(x, y, w)
         e.type = PLAYER
         e['velocity'] = Velocity()
         e['gravity'] = Gravity()
         e['contacts'] = Contacts()
+        e['engine'] = Engine()
+        e['input'] = Input(evtMngr)
         return e
 
     @staticmethod
-    def CreateNewLevelBlock(x=0, y=0, width=10, heigth=10):
-        e = EntityFactory.CreateNewBox(x, y, width, heigth)
+    def CreateNewLevelBlock(x=0, y=0, width=10, heigth=10, angle=0):
+        e = EntityFactory.CreateNewBox(x, y, width, heigth, angle)
         e.type = LEVEL_BLOCK
         return e
 
@@ -29,10 +32,10 @@ class EntityFactory(object):
         return e
 
     @staticmethod
-    def CreateNewBox(x=0, y=0, width=10, heigth=10):
+    def CreateNewBox(x=0, y=0, width=10, heigth=10, angle=0):
         e = Entity()
         e.type = BOX
-        e['position'] = Position(x, y)
+        e['position'] = Position(x, y, radians(angle))
         e['model'] = BoxModel(e['position'], width, heigth)
         e['hitbox'] = Hitbox(width, heigth)
         return e

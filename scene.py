@@ -4,16 +4,22 @@ from view import View
 from entityfactory import *
 
 class Scene(View):
-    def __init__(self):
+    def __init__(self, evtMngr):
         super(Scene, self).__init__()
 
         self.sim_dt = 1000.0 / 100.0 #100 per second
         self.timeAcc = 0
 
         entFact = EntityFactory
-        self.viewObjects.append(entFact.CreateNewPlayer())
+        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr))
         self.viewObjects.append(
             entFact.CreateNewLevelBlock(-200, -200, 400, 20))
+        # self.viewObjects.append(
+        #     entFact.CreateNewLevelBlock(-300, 200, 600, 20))
+        # self.viewObjects.append(
+        #     entFact.CreateNewLevelBlock(-300, -300, 600, 20))
+        # self.viewObjects.append(
+        #     entFact.CreateNewLevelBlock(-200, -200, 400, 20))
 
     def update(self):
         updated = False

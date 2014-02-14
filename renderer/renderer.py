@@ -18,7 +18,7 @@ class Renderer(object):
         self.winHeight = winHeight
         self.time = SDL_GetTicks()
         self.timeAcc = 0
-        self.limitFPS = True
+        self.limitFPS = False
         self.fpsCap = 60.0
 
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -41,7 +41,7 @@ class Renderer(object):
         glCullFace(GL_BACK)
         glFrontFace(GL_CW)
 
-        SDL_GL_SetSwapInterval(0) # disable v-sync
+        # SDL_GL_SetSwapInterval(0) # disable v-sync
 
         self.camToClipMat = self.getCamToClipMat()
 

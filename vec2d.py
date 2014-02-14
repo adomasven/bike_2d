@@ -5,11 +5,11 @@ import operator
 import math
 from basecomponent import *
  
-class Vec2d(Component, object):
+class Vec2d(object):
     """2d vector class, supports vector and scalar operators,
        and also provides a bunch of high level functions
 
-       Modified to inherit from my custom Component class
+       I have made some imporovements to it
        """
     __slots__ = ['x', 'y']
  

@@ -7,19 +7,21 @@ from basecomponent import *
 __all__ = ['CollisionResolver']
 
 def collides(this, other):
+    try: bound = this['hitbox'].getBoundingPoly(this)
+    except: pass
     try: bound = this['hitbox'].getBoundingBox(this)
-    except:
-        try: bound = this['hitbox'].getBoundingCircle(this)
-        except: return False
+    except: pass
+    try: bound = this['hitbox'].getBoundingCircle(this)
+    except: return False
     return bound.intersects(other)
 
 class Bounds(object):
     def intersects(self, other):
         ohb = other['hitbox']
-        try: return self.intersectsBB(ohb.getBoundingBox(other))
-        except:
-            try: return self.intersectsCirc(ohb.getBoundingCircle(other))
-            except: return False
+        try: return self.intersectsPoly(ohb.getBoundingPoly(other))
+        except: pass
+        try: return self.intersectsCirc(ohb.getBoundingCircle(other))
+        except: return False
 
 class BoundingBox(Bounds):
     def __init__(self, x, y, w, h):
@@ -33,7 +35,7 @@ class BoundingBox(Bounds):
         elif key == 1:
             return self.pos + Vec2d(0, self.dim.y)
         elif key == 2:
-            return self.pos + Vec2d(self.dim.x, self.dim.y)
+            return self.pos + self.dim
         else:
             return self.pos + Vec2d(self.dim.x, 0)
 
@@ -51,6 +53,17 @@ class BoundingBox(Bounds):
 
     def intersectsCirc(self, other):
         return other.intersectsBB(self)
+
+class BoundingPolygon(Bounds):
+    def __init__(self, points):
+        self.points = points
+
+    def __getitem__(self, key):
+        key = key % len(self.points)
+        return self.points[key]
+
+    def intersectsCirc(self, other):
+        return other.intersectsPoly(self)
         
 
 class BoundingCircle(Bounds):
@@ -70,13 +83,21 @@ class BoundingCircle(Bounds):
             minResVec += self.intersectsLine(other[i], other[i+1])
         return minResVec if minResVec != Vec2d(0, 0) else False
 
+    def intersectsPoly(self, other):
+        minResVec = Vec2d(0, 0)
+        for i in range(len(other.points)):
+            minResVec += self.intersectsLine(other[i], other[i+1])
+        return minResVec if minResVec != Vec2d(0, 0) else False        
+
     # using the image on 2nd answer: 
     # http://stackoverflow.com/questions/1073336/circle-line-collision-detection
     # returns a minimal resolution vector or False
     def intersectsLine(self, point1, point2):
         ac = self.pos - point1
-        ab = (point2 - point1).normalized()
+        ab = (point2 - point1)
+        ablen = ab.normalize_return_length()
         adlen = ac.dot(ab)
+        if(adlen < 0 or adlen > ablen): return False
         dcsqrd = ac.get_length_sqrd() - adlen**2
         if dcsqrd < self.r**2:
             return Vec2d(-ab.y, ab.x) * (self.r - sqrt(dcsqrd))

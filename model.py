@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+from math import cos, sin
+
 from basecomponent import Component
 from numpy import matrix
 from glhelpers import *
@@ -29,8 +31,10 @@ class BoxModel(Model):
 
     def getModelToWorldMat(self):
         mat = identityMatrix()
-        mat[0,0] = self.width
-        mat[1,1] = self.height
+        mat[0,0] = self.width * cos(self.position.angle)
+        mat[0,1] = -sin(self.position.angle)
+        mat[1,0] = sin(self.position.angle)
+        mat[1,1] = self.height * cos(self.position.angle)
         mat[0,3] = self.position.x
         mat[1,3] = self.position.y
         return mat
