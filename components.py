@@ -117,7 +117,7 @@ class Contacts(Component):
             ent['velocity'] -= 0.01 * minResVec.perpendicular() * \
                                 minResVec.perpendicular().dot(ent['velocity'])
         try: ent['engine'].colliders = self.colliders
-        except: raise
+        except: pass
         self.colliders = []
 
     def add(self, collider):
