@@ -8,7 +8,8 @@ __all__ = ['CollisionResolver']
 
 def collides(this, other):
     try: bound = this['hitbox'].getBoundingPoly(this)
-    except: pass
+    except: 
+        if this['hitbox'].__class__.__name__ == 'Hitbox': raise
     try: bound = this['hitbox'].getBoundingBox(this)
     except: pass
     try: bound = this['hitbox'].getBoundingCircle(this)
@@ -97,10 +98,18 @@ class BoundingCircle(Bounds):
         ab = (point2 - point1)
         ablen = ab.normalize_return_length()
         adlen = ac.dot(ab)
-        if(adlen < 0 or adlen > ablen): return False
+        if adlen < 0:
+            aclen = ac.length
+            if aclen < self.r: return ac/aclen * self.r - ac
+            else: return False
+        if adlen > ablen: 
+            bc = self.pos - point2
+            bclen = bc.length
+            if bclen < self.r: return bc/bclen * self.r - bc
+            else: return False
         dcsqrd = ac.get_length_sqrd() - adlen**2
         if dcsqrd < self.r**2:
-            return Vec2d(-ab.y, ab.x) * (self.r - sqrt(dcsqrd))
+            return ab.perpendicular() * (self.r - sqrt(dcsqrd))
 
         return False
 

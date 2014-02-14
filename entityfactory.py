@@ -6,7 +6,7 @@ from math import radians
 class EntityFactory(object):
     
     @staticmethod
-    def CreateNewPlayer(evtMngr, x=-200, y=0, w=10, h=10):
+    def CreateNewPlayer(evtMngr, x=0, y=0, w=10, h=10):
         e = EntityFactory.CreateNewCircle(x, y, w)
         e.type = PLAYER
         e['velocity'] = Velocity()

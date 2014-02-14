@@ -4,13 +4,13 @@ from model import *
 from basecomponent import Component
 from sdl2 import *
 from vec2d import Vec2d
-from collision import BoundingBox, BoundingCircle
+from collision import BoundingBox, BoundingCircle, BoundingPolygon
 from eventmanager import *
 
 class Position(Vec2d, Component):
     def __init__(self, x=0, y=0, angle=0):
         super(Position, self).__init__(x, y)
-        self.angle = angle
+        self.rads = angle
 
     def update(self, ent, dt):
         while self.x < -400:
@@ -31,17 +31,15 @@ class Velocity(Vec2d, Component):
         try: ent['position'] += self * dt
         except TypeError as e: print e
 
-class Hitbox(Component):
-    def __init__(self, w, h):
-        self.w, self.h = w, h
-
+class Hitbox(Vec2d, Component):
     def getBoundingPoly(self, ent):
         pos = ent['position']
+        angle = pos.rads
         verts = []
-        verts.append(self.pos)
-        verts.append(self.pos + Vec2d(0, self.dim.y))
-        verts.append(self.pos + self.dim)
-        verts.append(self.pos + Vec2d(self.dim.x, 0))
+        verts.append(pos.rotated(angle))
+        verts.append((pos + Vec2d(0, self.y)).rotated(angle))
+        verts.append((pos + self).rotated(angle))
+        verts.append((pos + Vec2d(self.x, 0)).rotated(angle))
         return BoundingPolygon(verts)
 
 class CircleHitbox(Component):
@@ -67,10 +65,17 @@ class Engine(Component):
         self.active = True
         self.accelerate = False
         self.rotation = Engine.CW
+        self.colliders = []
 
     def update(self, ent, dt):
-        if self.active and self.accelerate:
-            ent['velocity'] += Vec2d(5, 0) * self.rotation
+        if self.active and self.accelerate and self.colliders:
+            velIncr = Vec2d(0, 0)
+            for c in self.colliders:
+                direction = c.minResVec.prependicular().normalized()
+                velIncr += direction * self.rotation * 5
+            ent['velocity'] += velIncr / len(self.colliders)
+            self.colliders = []
+        print self.colliders, self.active, self.accelerate
 
 class Input(Component):
     def __init__(self, evtMngr):
@@ -111,6 +116,8 @@ class Contacts(Component):
             ent['velocity'] -= 1.5 * minResVec * minResVec.dot(ent['velocity'])
             ent['velocity'] -= 0.01 * minResVec.perpendicular() * \
                                 minResVec.perpendicular().dot(ent['velocity'])
+        try: ent['engine'].colliders = self.colliders
+        except: raise
         self.colliders = []
 
     def add(self, collider):

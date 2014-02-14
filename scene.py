@@ -11,15 +11,15 @@ class Scene(View):
         self.timeAcc = 0
 
         entFact = EntityFactory
-        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr))
+        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 100, -150))
         self.viewObjects.append(
             entFact.CreateNewLevelBlock(-200, -200, 400, 20))
-        # self.viewObjects.append(
-        #     entFact.CreateNewLevelBlock(-300, 200, 600, 20))
-        # self.viewObjects.append(
-        #     entFact.CreateNewLevelBlock(-300, -300, 600, 20))
-        # self.viewObjects.append(
-        #     entFact.CreateNewLevelBlock(-200, -200, 400, 20))
+        self.viewObjects.append(
+            entFact.CreateNewLevelBlock(-300, 200, 600, 20))
+        self.viewObjects.append(
+            entFact.CreateNewLevelBlock(-300, -300, 600, 20, 45))
+        self.viewObjects.append(
+            entFact.CreateNewLevelBlock(-300, -300, 600, 20, -45))
 
     def update(self):
         updated = False

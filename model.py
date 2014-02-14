@@ -3,7 +3,7 @@
 from math import cos, sin
 
 from basecomponent import Component
-from numpy import matrix
+from numpy import array
 from glhelpers import *
 import sdl2.sdlttf as sdlttf
 from sdl2.pixels import *
@@ -30,14 +30,18 @@ class BoxModel(Model):
         self.width, self.height = width, height
 
     def getModelToWorldMat(self):
-        mat = identityMatrix()
-        mat[0,0] = self.width * cos(self.position.angle)
-        mat[0,1] = -sin(self.position.angle)
-        mat[1,0] = sin(self.position.angle)
-        mat[1,1] = self.height * cos(self.position.angle)
-        mat[0,3] = self.position.x
-        mat[1,3] = self.position.y
-        return mat
+        transScal = identityMatrix()
+        transScal[0,0] = self.width
+        transScal[1,1] = self.height
+        transScal[0,3] = self.position.x
+        transScal[1,3] = self.position.y
+        rot = identityMatrix()
+        angle = self.position.rads
+        rot[0,0] = cos(angle)
+        rot[0,1] = -sin(angle)
+        rot[1,0] = sin(angle)
+        rot[1,1] = cos(angle)
+        return rot.dot(transScal)
 
 class CircleModel(Model):
     def __init__(self, position, r):
