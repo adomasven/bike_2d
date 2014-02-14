@@ -74,8 +74,8 @@ class BoundingCircle(Bounds):
 
     def intersectsCirc(self, other):
         minResVec = other.pos - self.pos
-        if minResVec.get_length_sqrd() - (self.r + other.r)**2 > 0:
-            return minResVec - (self.r + other.r)
+        if minResVec.get_length_sqrd() - (self.r + other.r)**2 < 0:
+            return minResVec.normalized() * (minResVec.get_length() - (self.r + other.r))
         return False
 
     def intersectsBB(self, other):

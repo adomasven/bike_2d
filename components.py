@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-
+from math import pi
 from model import *
 from basecomponent import Component
 from sdl2 import *
@@ -69,13 +69,12 @@ class Engine(Component):
 
     def update(self, ent, dt):
         if self.active and self.accelerate and self.colliders:
-            velIncr = Vec2d(0, 0)
+            velIncr = Vec2d(1, 1)
             for c in self.colliders:
-                direction = c.minResVec.prependicular().normalized()
-                velIncr += direction * self.rotation * 5
-            ent['velocity'] += velIncr / len(self.colliders)
+                direction = c.minResVec.perpendicular().normalized()
+                velIncr *= direction
+            ent['velocity'] += velIncr * 7 * self.rotation
             self.colliders = []
-        print self.colliders, self.active, self.accelerate
 
 class Input(Component):
     def __init__(self, evtMngr):
@@ -97,7 +96,8 @@ class Input(Component):
     def update(self, ent, dt):
         if self.move: 
             ent['engine'].accelerate = True
-        else: ent['engine'].accelerate = False
+        else: 
+            ent['engine'].accelerate = False
 
         if self.changeRotation:
             ent['engine'].rotation *= -1
@@ -113,11 +113,18 @@ class Contacts(Component):
             minResVec = c.minResVec
             veclen = minResVec.normalize_return_length()
             ent['position'] += c.minResVec * veclen
-            ent['velocity'] -= 1.5 * minResVec * minResVec.dot(ent['velocity'])
-            ent['velocity'] -= 0.01 * minResVec.perpendicular() * \
-                                minResVec.perpendicular().dot(ent['velocity'])
+            try:
+                if minResVec.dot(ent['velocity']) < 0:
+                    tempvel = ent['velocity']
+                    ent['velocity'] = c.other['velocity']
+                    c.other['velocity'] = tempvel
+            except:
+                ent['velocity'] -= 1.5 * minResVec * minResVec.dot(ent['velocity'])
+                ent['velocity'] -= 0.01 * minResVec.perpendicular() * \
+                               minResVec.perpendicular().dot(ent['velocity'])
+                pass
         try: ent['engine'].colliders = self.colliders
-        except: raise
+        except: pass
         self.colliders = []
 
     def add(self, collider):

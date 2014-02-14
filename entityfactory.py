@@ -29,6 +29,9 @@ class EntityFactory(object):
         e['position'] = Position(x, y)
         e['model'] = CircleModel(e['position'], r)
         e['hitbox'] = CircleHitbox(r)
+        e['velocity'] = Velocity()
+        e['contacts'] = Contacts()
+        e['gravity'] = Gravity()
         return e
 
     @staticmethod

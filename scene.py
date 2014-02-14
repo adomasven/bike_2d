@@ -11,7 +11,10 @@ class Scene(View):
         self.timeAcc = 0
 
         entFact = EntityFactory
-        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 100, -150))
+        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 100, -150, 30))
+        self.viewObjects.append(entFact.CreateNewCircle( 60, -140, 30))
+        self.viewObjects.append(entFact.CreateNewCircle( 80, 100, 30))
+        self.viewObjects.append(entFact.CreateNewCircle( 90, 70, 30))
         self.viewObjects.append(
             entFact.CreateNewLevelBlock(-200, -200, 400, 20))
         self.viewObjects.append(
