@@ -16,6 +16,7 @@ MODEL_CIRCLE = 2
 class Model(Component):
     def __init__(self, position):
         self.position = position
+        self.compName = "model"
     def getModelToWorldMat():
         mat = identityMatrix()
         mat[0,3] = self.position.x
@@ -83,7 +84,7 @@ class FPSModel(Model):
 
     def getFontSurface(self):
         try: SDL_FreeSurface(self.surfacep)
-        except: pass
+        except AttributeError: pass
         
         surfacep = sdlttf.TTF_RenderText_Blended(self.ttfFont, 
             str(self.currentFPS), self.colour)

@@ -81,7 +81,7 @@ class Renderer(object):
         for renderer, models in self.buildRenderingQueue(view).iteritems():
             # call onDraw methods if implemented
             try: map(models[0].__class__.onDraw, models)
-            except: pass
+            except AttributeError: pass
             
 
             modelRenderer = getattr(self, self.modelRenderers[renderer])
@@ -91,9 +91,9 @@ class Renderer(object):
         queue = dict()
         for o in scene.viewObjects:
             try: 
-                try: queue[o['model'].type].append(o['model'])
-                except: queue[o['model'].type] = [o['model']]
-            except: pass
+                try: queue[o.model.type].append(o.model)
+                except: queue[o.model.type] = [o.model]
+            except KeyError: pass
         return queue
 
     def swapBuffer(self):

@@ -11,7 +11,7 @@ class EventManager(object):
 
     def attachHandler(self, etype, fn):
         try: self.handlers[etype].append(fn)
-        except: self.handlers[etype] = [fn]
+        except KeyError: self.handlers[etype] = [fn]
 
     def handleEvent(self, event):
         for fn in self.handlers[event.type]:

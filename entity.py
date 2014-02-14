@@ -10,38 +10,48 @@ CIRCLE = 3
 LEVEL_BLOCK = 10
 HUD_FPS = 100
 
-class Entity(dict):
-    HASH_NUM = 0
+class Entity(object):
+    ID_COUNT = 0
+
     def __init__(self):
         self.updatePriority = []
-        self.mass = 0
-        self.hashNum = Entity.HASH_NUM
-        Entity.HASH_NUM += 1
+        self.id = Entity.ID_COUNT
+        self.comps = dict()
+        Entity.ID_COUNT += 1
 
-    def __hash__(self): return self.hashNum
+    def __hash__(self): return self.id
 
     def __eq__(self, other):
         return self is other
 
+    def __getattribute__(self, name):
+        try: return object.__getattribute__(self, name)
+        except AttributeError:
+            if len(self.comps[name]) <= 1:
+                return self.comps[name][0]
 
     def update(self, dt):
         for compType in self.updatePriority:
-            if type(self[compType]) is list:
-                for c in self[compType]:
+            for compList in self.comps[compType]:
+                for c in compList:
                     self.updateComponent(dt, c)
-            else:
-                self.updateComponent(dt, comp)
 
-        for compType, comp in self.iteritems():
+        for compType, compList in self.comps.iteritems():
             if compType not in self.updatePriority:
-                if type(comp) is list:
-                    for c in comp:
-                        self.updateComponent(dt, c)
-                else:
-                    self.updateComponent(dt, comp)
-            
-
+                for c in compList:
+                    self.updateComponent(dt, c)
 
     def updateComponent(self, dt, comp):
         try: comp.update(self, dt)
         except AttributeError: pass
+
+    def addComp(self, comp, append=False, compName=None):
+        if not compName:
+            try: compName = comp.compName
+            except AttributeError: compName = comp.__class__.__name__.lower()
+        if append:
+            try: self.comps[compName].apppend(comp)
+            except KeyError:
+                self.comps[compName] = [comp]
+        else:
+            self.comps[compName] = [comp]

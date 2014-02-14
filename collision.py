@@ -7,22 +7,21 @@ from basecomponent import *
 __all__ = ['CollisionResolver']
 
 def collides(this, other):
-    try: bound = this['hitbox'].getBoundingPoly(this)
-    except: 
-        if this['hitbox'].__class__.__name__ == 'Hitbox': raise
-    try: bound = this['hitbox'].getBoundingBox(this)
-    except: pass
-    try: bound = this['hitbox'].getBoundingCircle(this)
-    except: return False
+    try: bound = this.hitbox.getBoundingPoly(this)
+    except (KeyError, AttributeError): pass
+    try: bound = this.hitbox.getBoundingBox(this)
+    except (KeyError, AttributeError): pass
+    try: bound = this.hitbox.getBoundingCircle(this)
+    except (KeyError, AttributeError): return False
     return bound.intersects(other)
 
 class Bounds(object):
     def intersects(self, other):
-        ohb = other['hitbox']
+        ohb = other.hitbox
         try: return self.intersectsPoly(ohb.getBoundingPoly(other))
-        except: pass
+        except AttributeError: pass
         try: return self.intersectsCirc(ohb.getBoundingCircle(other))
-        except: return False
+        except AttributeError: return False
 
 class BoundingBox(Bounds):
     def __init__(self, x, y, w, h):
@@ -130,7 +129,7 @@ class CollisionResolver(object):
         contacts = CollisionResolver.getCollisions(entities)
         needResolution = CollisionResolver.addColliders(contacts)
         for ent in needResolution:
-            ent['contacts'].resolveContacts(ent)
+            ent.contacts.resolveContacts(ent)
 
     @staticmethod
     def addColliders(contacts):
@@ -138,12 +137,12 @@ class CollisionResolver(object):
         for contact in contacts:
             this, other, minResVec = contact.this, contact.other, contact.minResVec
             try: 
-                this['contacts'].add(Collider(other, minResVec))
+                this.contacts.add(Collider(other, minResVec))
                 needResolution.add(this)
             except: pass
 
             try: 
-                other['contacts'].add(Collider(this, -minResVec))
+                other.contacts.add(Collider(this, -minResVec))
                 needResolution.add(other)
             except: pass
         return needResolution
