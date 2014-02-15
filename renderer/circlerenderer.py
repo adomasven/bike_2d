@@ -49,7 +49,7 @@ class CircleRenderer(ModelRenderer):
                     self.draw(m.getModelToWorldMat())
 
     # this algo stolen from: http://slabode.exofire.net/circle_draw.shtml
-    def generateCirclePoints(self, numVerts):
+    def generateCirclePoints(self, numVerts, skip=4):
         vertexData = [0,  0]
 
         theta = 2 * pi / numVerts
@@ -59,7 +59,7 @@ class CircleRenderer(ModelRenderer):
         x = 1
         y = 0
 
-        for i in range(numVerts):
+        for i in range(numVerts -1):
             vertexData.extend([x, y])
 
             tx = y

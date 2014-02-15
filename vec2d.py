@@ -285,7 +285,7 @@ class Vec2d(object):
         self.x = self.length
         self.y = 0
         self.rotate(angle)
-    angle = property(get_angle, __setangle, None, "gets or sets the angle of a vector")
+    vec_angle = property(get_angle, __setangle, None, "gets or sets the angle of a vector")
  
     def get_angle_between(self, other):
         cross = self.x*other[1] - self.y*other[0]

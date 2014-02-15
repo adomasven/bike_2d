@@ -123,8 +123,12 @@ class Collider(Component):
 
 class CollisionResolver(object):
     @staticmethod
-    def resolveCollisions(entities):
-        contacts = CollisionResolver.getCollisions(entities)
+    def resolveCollisions(this, others=None):
+        if(others):
+            contacts = CollisionResolver.getCollisionsOneToMany(this, others)
+        else:
+            contacts = CollisionResolver.getCollisionsAll(this)
+
         needResolution = CollisionResolver.addColliders(contacts)
         for ent in needResolution:
             ent.contacts.resolveContacts(ent)
@@ -146,12 +150,23 @@ class CollisionResolver(object):
         return needResolution
 
     @staticmethod
-    def getCollisions(entities):
+    def getCollisionsAll(entities):
         contacts = []
         for i, this in enumerate(entities):
-            for other in entities[i+1:]:
-                minResVec = collides(this, other)
-                if(minResVec):
-                    contacts.append(Contact(this, other, minResVec))
+            contacts.extend(CollisionResolver.getCollisionsOneToMany(this, 
+                entities[i+1:]))
         return contacts
+
+    @staticmethod
+    def getCollisionsOneToMany(this, others):
+        contacts = []
+        for other in others:
+                if this != other:
+                    minResVec = collides(this, other)
+                    if(minResVec):
+                        contacts.append(Contact(this, other, minResVec))
+        return contacts
+
+
+
         

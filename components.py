@@ -12,7 +12,15 @@ class Position(Vec2d, Component):
     def __init__(self, x=0, y=0, angle=0):
         Vec2d.__init__(self, x, y)
         Component.__init__(self)
-        self.rads = angle
+        self._angle = angle
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, value):
+        self._angle = value % (pi * 2)
 
     def update(self, ent, dt):
         while self.x < -400:
@@ -25,21 +33,50 @@ class Position(Vec2d, Component):
             self.y -= 600
 
 class Velocity(Vec2d, Component):
-    def __init__(self, maxV=1000000, x=0, y=0):
+    def __init__(self, maxrps=21, x=0, y=0):
         Vec2d.__init__(self, x, y)
         Component.__init__(self)
-        self.maxV = maxV
+        self._rps = 0
+        self.maxrps = maxrps
+
+    @property
+    def rps(self):
+        return self._rps
+    @rps.setter
+    def rps(self, value):
+        if value > self.maxrps:
+            self._rps = self.maxrps
+        elif value < -self.maxrps:
+            self._rps = -self.maxrps
+        else: self._rps = value
+    
 
     def update(self, ent, dt):
+        if ent.contacts.resVec:
+            rotFriction = ent.contacts.rotFriction
+            slideFriction =  ent.contacts.slideFriction
+            surface = ent.contacts.resVec.normalized().perpendicular()
+            linearAngSpeed = self.rps * 2*pi * ent.hitbox.r
+
+            self += surface * (linearAngSpeed - self.dot(surface)) * dt
+
+            if ent.breaks.brk:
+                self -= self.dot(surface) * slideFriction * \
+                        surface * ent.breaks.strength
+            else:
+                self -= self.dot(surface) * rotFriction * surface
+
+            self.rps = self.dot(surface) / (2*pi * ent.hitbox.r)
+
         ent.position += self * dt
-        if self.contacts.colliders:
-            self.rads += self.length / self.hitbox.r
+        # ent.position.angle += linearAngSpeed * dt / ent.hitbox.r
+        ent.position.angle += self.rps * 2*pi * dt
         
 
 class Hitbox(Vec2d, Component):
     def getBoundingPoly(self, ent):
         pos = ent.position
-        angle = pos.rads
+        angle = pos.angle
         verts = []
         verts.append(pos.rotated(angle))
         verts.append((pos + Vec2d(0, self.y)).rotated(angle))
@@ -68,28 +105,71 @@ class Gravity(Vec2d, Component):
 class Engine(Component):
     CW = -1
     CCW = 1
-    def __init__(self, power=2500):
+    def __init__(self, power=200):
         Component.__init__(self)
         self.active = True
-        self.accelerate = False
+        self.acc = False
         self.rotation = Engine.CW
         self.power = power
 
     def update(self, ent, dt):
-        if self.active and self.accelerate and ent.contacts.colliders:
-            velIncr = Vec2d(0, 0)
-            for c in ent.contacts.colliders:
-                direction = c.resVec.perpendicular()
-                velIncr += direction
-            ent.velocity += velIncr * self.rotation * self.power * dt
-            ent.contacts.colliders = None
+        if self.active:
+            if self.acc:
+                ent.velocity.rps += self.power * self.rotation * dt
+
+class Breaks(Component):
+    def __init__(self, strength=.9):
+        Component.__init__(self)
+        self.strength = strength
+        self.brk = False
+
+    def update(self, ent, dt):
+        if self.brk:
+            ent.velocity.rps /= 1 + self.strength
+
+
+class Contacts(Component):
+    def __init__(self, rotFriction=.001, slideFriction=1, elasticity=.5):
+        Component.__init__(self)
+        self.colliders = []
+        self.resVec = None
+        self.rotFriction = rotFriction
+        self.slideFriction = slideFriction
+        self.elasticity = elasticity
+
+    def resolveContacts(self, ent):
+        totalResVec = Vec2d(0, 0)
+        for c in self.colliders:
+            totalResVec += c.resVec * c.length
+
+        ent.position += totalResVec
+        #let it sink by one pixel
+        ent.position -= totalResVec.normalized() * .2
+
+        length = totalResVec.normalize_return_length()
+        ent.velocity -= totalResVec * totalResVec.dot(ent.velocity) * (
+            1 + self.elasticity)
+        
+        self.resVec = totalResVec * length
+        self.colliders = []
+
+    def add(self, collider):
+        self.colliders.append(collider)
+
+    def update(self, ent, dt):
+        self.resVec = None
 
 class Input(Component):
     def __init__(self, evtMngr):
         Component.__init__(self)
-        self.config = {SDLK_UP:'move', SDLK_SPACE:'changeRotation'}
-        self.move = False
+        self.config = {
+            SDLK_UP:'acc', 
+            SDLK_SPACE:'changeRotation',
+            SDLK_DOWN:'brk',
+            }
+        self.acc = False
         self.changeRotation = False
+        self.brk = False
         evtMngr.attachHandler(E_SDL_EVENT, self.onSDLEvent)
 
     def onSDLEvent(self, eType, e):
@@ -103,40 +183,17 @@ class Input(Component):
             except (AttributeError, KeyError): pass
 
     def update(self, ent, dt):
-        if self.move: 
-            ent.engine.accelerate = True
-        else: ent.engine.accelerate = False
+        if self.acc: ent.engine.acc = True
+        else:        ent.engine.acc = False
 
         if self.changeRotation:
             ent.engine.rotation *= -1
             self.changeRotation = False
 
+        if self.brk: ent.breaks.brk = True
+        else:        ent.breaks.brk = False
 
-class Contacts(Component):
-    def __init__(self, friction=0.05, elasticity=.5):
-        Component.__init__(self)
-        self.colliders = None
-        self.newColliders = []
-        self.friction = friction
-        self.elasticity = elasticity
 
-    def resolveContacts(self, ent):
-        totalResVec = Vec2d(0, 0)
-        for c in self.newColliders:
-            totalResVec += c.resVec * c.length
-
-        ent.position += totalResVec
-        length = totalResVec.normalize_return_length()
-        ent.velocity -= totalResVec * totalResVec.dot(ent.velocity) * (
-            1 + self.elasticity)
-        
-        ent.velocity -= self.friction * totalResVec.perpendicular() * \
-                            totalResVec.perpendicular().dot(ent.velocity)
-        self.colliders = self.newColliders
-        self.newColliders = []
-
-    def add(self, collider):
-        self.newColliders.append(collider)
 
 class FPSCounter(Component):
     def __init__(self):

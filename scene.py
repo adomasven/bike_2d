@@ -6,24 +6,22 @@ from collision import *
 class Scene(object):
     def __init__(self, evtMngr):
         self.time = timer.SDL_GetTicks()
-        self.viewObjects = []
+        self.sceneObjects = []
         self.hudObjects = []
 
-        self.sim_dt = 1000.0 / 100.0 #100 per second
+        self.sim_dt = 1000.0 / 60.0 #100 per second
         self.timeAcc = 0
 
-        entFact = EntityFactory
+        entFact = EntityFactory(self.sceneObjects)
 
-        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 0, 0, 15))
-        self.viewObjects.append(
-            entFact.CreateNewLevelBlock(-200, -200, 400, 20))
-        self.viewObjects.append(
-            entFact.CreateNewLevelBlock(-300, 200, 600, 20))
-        self.viewObjects.append(
-            entFact.CreateNewLevelBlock(-300, -300, 600, 20, 45))
-        self.viewObjects.append(
-            entFact.CreateNewLevelBlock(-300, -300, 600, 20, -45))
+        self.player = entFact.CreateNewPlayer(evtMngr, 0, 0, 45)
 
+        entFact.CreateNewLevelBlock(-200, -200, 400, 20)
+        entFact.CreateNewLevelBlock(-300, 200, 600, 20)
+        entFact.CreateNewLevelBlock(-300, -300, 600, 20, 45)
+        entFact.CreateNewLevelBlock(-300, -300, 600, 20, -45)
+
+        entFact.target = self.hudObjects
         self.hudObjects.append(
                 entFact.CreateNewFPSMeter()
             )
@@ -32,10 +30,10 @@ class Scene(object):
         updated = False
         a = self.allowUpdate()
         while a.next():
-            self.updateObjects(self.viewObjects, self.sim_dt)
+            self.updateObjects(self.sceneObjects, self.sim_dt)
             self.updateObjects(self.hudObjects, self.sim_dt)
             updated = True
-        CollisionResolver.resolveCollisions(self.viewObjects)
+        CollisionResolver.resolveCollisions(self.player, self.sceneObjects)
 
     def updateObjects(self, objects, dt=None):
         if not dt: dt = self.getDt()

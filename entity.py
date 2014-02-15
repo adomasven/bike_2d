@@ -13,11 +13,14 @@ HUD_FPS = 100
 class Entity(object):
     ID_COUNT = 0
 
-    def __init__(self):
-        self.updatePriority = []
+    def __init__(self, target):
+        self.updateFirst = []
+        self.updateLast = []
         self.id = Entity.ID_COUNT
         self.comps = dict()
         Entity.ID_COUNT += 1
+        try: target.append(self)
+        except AttributeError: pass
 
     def __hash__(self): return self.id
 
@@ -34,15 +37,21 @@ class Entity(object):
         return "Entity #" + str(self.id)
 
     def update(self, dt):
-        for compType in self.updatePriority:
+        for compType in self.updateFirst:
             compList = self.comps[compType]
             for c in compList:
                 self.updateComponent(dt, c)
 
         for compType, compList in self.comps.iteritems():
-            if compType not in self.updatePriority:
+            if compType not in self.updateFirst and \
+               compType not in self.updateLast:
                 for c in compList:
                     self.updateComponent(dt, c)
+
+        for compType in self.updateLast:
+            compList = self.comps[compType]
+            for c in compList:
+                self.updateComponent(dt, c)
 
     def updateComponent(self, dt, comp):
         try: comp.update(self, dt)

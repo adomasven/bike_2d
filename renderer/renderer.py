@@ -72,7 +72,7 @@ class Renderer(object):
     def draw(self, view):
         if self.allowRendering():
             self.swapBuffer()
-            self.drawObjects(view.viewObjects)
+            self.drawObjects(view.sceneObjects)
             self.drawObjects(view.hudObjects)
 
     def drawObjects(self, objects):

@@ -1,7 +1,5 @@
 #!/usr/bin/env python2
 
-from math import cos, sin
-
 from basecomponent import Component
 from numpy import array
 from glhelpers import *
@@ -37,12 +35,7 @@ class BoxModel(Model):
         transScal[1,1] = self.height
         transScal[0,3] = self.position.x
         transScal[1,3] = self.position.y
-        rot = identityMatrix()
-        angle = self.position.rads
-        rot[0,0] = cos(angle)
-        rot[0,1] = -sin(angle)
-        rot[1,0] = sin(angle)
-        rot[1,1] = cos(angle)
+        rot = rotationMatrix(self.position.angle)
         return rot.dot(transScal)
 
 class CircleModel(Model):
@@ -52,12 +45,13 @@ class CircleModel(Model):
         self.r = r
 
     def getModelToWorldMat(self):
-        mat = identityMatrix()
-        mat[0,0] = self.r
-        mat[1,1] = self.r
-        mat[0,3] = self.position.x
-        mat[1,3] = self.position.y
-        return mat
+        transScal = identityMatrix()
+        transScal[0,0] = self.r
+        transScal[1,1] = self.r
+        transScal[0,3] = self.position.x
+        transScal[1,3] = self.position.y
+        rot = rotationMatrix(self.position.angle)
+        return transScal.dot(rot)
 
 class FPSModel(Model):
     def __init__(self, counter, position, fontSize = 32):
