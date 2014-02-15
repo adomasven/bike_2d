@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+from math import pi
 from model import *
 from basecomponent import Component
 from sdl2 import *
@@ -9,7 +10,8 @@ from eventmanager import *
 
 class Position(Vec2d, Component):
     def __init__(self, x=0, y=0, angle=0):
-        super(Position, self).__init__(x, y)
+        Vec2d.__init__(self, x, y)
+        Component.__init__(self)
         self.rads = angle
 
     def update(self, ent, dt):
@@ -24,12 +26,15 @@ class Position(Vec2d, Component):
 
 class Velocity(Vec2d, Component):
     def __init__(self, maxV=1000000, x=0, y=0):
-        super(Velocity, self).__init__(x, y)
+        Vec2d.__init__(self, x, y)
+        Component.__init__(self)
         self.maxV = maxV
 
     def update(self, ent, dt):
-        try: ent.position += self * dt
-        except TypeError: pass
+        ent.position += self * dt
+        if self.contacts.colliders:
+            self.rads += self.length / self.hitbox.r
+        
 
 class Hitbox(Vec2d, Component):
     def getBoundingPoly(self, ent):
@@ -44,6 +49,7 @@ class Hitbox(Vec2d, Component):
 
 class CircleHitbox(Component):
     def __init__(self, r):
+        Component.__init__(self)
         self.r = r
         self.compName = 'hitbox'
 
@@ -53,32 +59,34 @@ class CircleHitbox(Component):
 
 class Gravity(Vec2d, Component):
     def __init__(self, x=0, y=-500):
-        super(Gravity, self).__init__(x, y)
+        Vec2d.__init__(self, x, y)
+        Component.__init__(self)
 
     def update(self, ent, dt):
-        try: ent.velocity += self * dt
-        except TypeError: pass
+        ent.velocity += self * dt
 
 class Engine(Component):
-    CW = 1
-    CCW = -1
-    def __init__(self):
+    CW = -1
+    CCW = 1
+    def __init__(self, power=2500):
+        Component.__init__(self)
         self.active = True
         self.accelerate = False
         self.rotation = Engine.CW
-        self.colliders = []
+        self.power = power
 
     def update(self, ent, dt):
-        if self.active and self.accelerate and self.colliders:
+        if self.active and self.accelerate and ent.contacts.colliders:
             velIncr = Vec2d(0, 0)
-            for c in self.colliders:
-                direction = c.minResVec.perpendicular().normalized()
+            for c in ent.contacts.colliders:
+                direction = c.resVec.perpendicular()
                 velIncr += direction
-            ent.velocity += velIncr * self.rotation * 7
-            self.colliders = []
+            ent.velocity += velIncr * self.rotation * self.power * dt
+            ent.contacts.colliders = None
 
 class Input(Component):
     def __init__(self, evtMngr):
+        Component.__init__(self)
         self.config = {SDLK_UP:'move', SDLK_SPACE:'changeRotation'}
         self.move = False
         self.changeRotation = False
@@ -105,26 +113,34 @@ class Input(Component):
 
 
 class Contacts(Component):
-    def __init__(self):
-        self.colliders = []
+    def __init__(self, friction=0.05, elasticity=.5):
+        Component.__init__(self)
+        self.colliders = None
+        self.newColliders = []
+        self.friction = friction
+        self.elasticity = elasticity
 
     def resolveContacts(self, ent):
-        for c in self.colliders:
-            minResVec = c.minResVec
-            veclen = minResVec.normalize_return_length()
-            ent.position += c.minResVec * veclen
-            ent.velocity -= 1.5 * minResVec * minResVec.dot(ent.velocity)
-            ent.velocity -= 0.01 * minResVec.perpendicular() * \
-                                minResVec.perpendicular().dot(ent.velocity)
-        try: ent.engine.colliders = self.colliders
-        except AttributeError: pass
-        self.colliders = []
+        totalResVec = Vec2d(0, 0)
+        for c in self.newColliders:
+            totalResVec += c.resVec * c.length
+
+        ent.position += totalResVec
+        length = totalResVec.normalize_return_length()
+        ent.velocity -= totalResVec * totalResVec.dot(ent.velocity) * (
+            1 + self.elasticity)
+        
+        ent.velocity -= self.friction * totalResVec.perpendicular() * \
+                            totalResVec.perpendicular().dot(ent.velocity)
+        self.colliders = self.newColliders
+        self.newColliders = []
 
     def add(self, collider):
-        self.colliders.append(collider)
+        self.newColliders.append(collider)
 
 class FPSCounter(Component):
     def __init__(self):
+        Component.__init__(self)
         self._time = timer.SDL_GetTicks()
         self.fps = 0
         self._count = 0

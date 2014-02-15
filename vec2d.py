@@ -9,18 +9,20 @@ class Vec2d(object):
     """2d vector class, supports vector and scalar operators,
        and also provides a bunch of high level functions
 
-       I have made some imporovements to it
+       Caching introduced by MrExcel
        """
-    __slots__ = ['x', 'y']
+    __slots__ = ['x', 'y', '_cached_length' ,'_cached_length_vec']
  
     def __init__(self, x_or_pair, y = None):
-        super(Vec2d, self).__init__()
         if y == None:
             self.x = x_or_pair[0]
             self.y = x_or_pair[1]
         else:
             self.x = x_or_pair
             self.y = y
+
+        self._cached_length = None
+        self._cached_length_vec = None
  
     def __len__(self):
         return 2
@@ -238,22 +240,34 @@ class Vec2d(object):
  
     def __invert__(self):
         return Vec2d(-self.x, -self.y)
+
+    def set(self, other):
+        try: self.x, self.y = other.x, other.y
+        except AttributeError:
+            self.x, self.y = other[0], other[1]
  
     # vectory functions
     def get_length_sqrd(self):
-        return self.x**2 + self.y**2
+        return self.length**2
  
     def get_length(self):
-        return math.sqrt(self.x**2 + self.y**2)
+        if self._cached_length_vec != self:
+            self._cached_length = math.sqrt(self.x**2 + self.y**2)
+            self._cached_length_vec = self
+        return self._cached_length
+        
     def __setlength(self, value):
         length = self.get_length()
         self.x *= value/length
         self.y *= value/length
+        self._cached_length_vec = self
+        self._cached_length = value
     length = property(get_length, __setlength, None, "gets or sets the magnitude of the vector")
  
     def rotate(self, angle):
         new = self.rotated(angle)
         self.x, self.y = new.x, new.y
+        self._cached_length_vec = self
  
     def rotated(self, angle):
         if(angle == 0): return self

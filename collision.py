@@ -101,11 +101,8 @@ class BoundingCircle(Bounds):
             aclen = ac.length
             if aclen < self.r: return ac/aclen * self.r - ac
             else: return False
-        if adlen > ablen: 
-            bc = self.pos - point2
-            bclen = bc.length
-            if bclen < self.r: return bc/bclen * self.r - bc
-            else: return False
+        if adlen > ablen:
+            return False
         dcsqrd = ac.get_length_sqrd() - adlen**2
         if dcsqrd < self.r**2:
             return ab.perpendicular() * (self.r - sqrt(dcsqrd))
@@ -121,7 +118,8 @@ class Contact(object):
 class Collider(Component):
     def __init__(self, other, minResVec):
         self.other = other
-        self.minResVec = minResVec
+        self.resVec = minResVec
+        self.length = minResVec.normalize_return_length()
 
 class CollisionResolver(object):
     @staticmethod

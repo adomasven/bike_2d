@@ -33,7 +33,7 @@ class Renderer(object):
 
         glClearColor(0, 0, 0, 0)
 
-        # needed for blending text and sprites (?)
+        # needed for blending text and sprites(?)
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -61,11 +61,12 @@ class Renderer(object):
         newTime = SDL_GetTicks()
         self.timeAcc += newTime - self.time
         self.time = newTime
-        if(self.timeAcc >= 1000.0 / self.fpsCap):
+
+        allow = False
+        while(self.timeAcc >= 1000.0 / self.fpsCap):
             self.timeAcc -= 1000.0 / self.fpsCap
-            self.timeAcc -= self.timeAcc / self.fpsCap
-            return True
-        return False
+            allow = True
+        return allow
 
 
     def draw(self, view):

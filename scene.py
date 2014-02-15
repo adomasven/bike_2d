@@ -14,7 +14,7 @@ class Scene(object):
 
         entFact = EntityFactory
 
-        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 100, -150, 20))
+        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 0, 0, 15))
         self.viewObjects.append(
             entFact.CreateNewLevelBlock(-200, -200, 400, 20))
         self.viewObjects.append(

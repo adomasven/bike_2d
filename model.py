@@ -15,6 +15,7 @@ MODEL_CIRCLE = 2
 
 class Model(Component):
     def __init__(self, position):
+        Component.__init__(self)
         self.position = position
         self.compName = "model"
     def getModelToWorldMat():

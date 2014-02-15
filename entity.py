@@ -30,11 +30,14 @@ class Entity(object):
             if len(self.comps[name]) <= 1:
                 return self.comps[name][0]
 
+    def __str__(self):
+        return "Entity #" + str(self.id)
+
     def update(self, dt):
         for compType in self.updatePriority:
-            for compList in self.comps[compType]:
-                for c in compList:
-                    self.updateComponent(dt, c)
+            compList = self.comps[compType]
+            for c in compList:
+                self.updateComponent(dt, c)
 
         for compType, compList in self.comps.iteritems():
             if compType not in self.updatePriority:
@@ -43,7 +46,7 @@ class Entity(object):
 
     def updateComponent(self, dt, comp):
         try: comp.update(self, dt)
-        except AttributeError: pass
+        except AttributeError as e: pass
 
     def addComp(self, comp, append=False, compName=None):
         if not compName:

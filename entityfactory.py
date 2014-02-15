@@ -14,6 +14,7 @@ class EntityFactory(object):
         e.addComp(Contacts())
         e.addComp(Engine())
         e.addComp(Input(evtMngr))
+        e.updatePriority = ['velocity']
         return e
 
     @staticmethod
