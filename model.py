@@ -6,9 +6,10 @@ from glhelpers import *
 import sdl2.sdlttf as sdlttf
 from sdl2.pixels import *
 from sdl2.surface import *
+from eventmanager import *
 
 MODEL_BOX = 0
-MODEL_FPS = 1
+MODEL_TEXT = 1
 MODEL_CIRCLE = 2
 
 class Model(Component):
@@ -53,23 +54,53 @@ class CircleModel(Model):
         rot = rotationMatrix(self.position.angle)
         return transScal.dot(rot)
 
-class FPSModel(Model):
-    def __init__(self, counter, position, fontSize = 32):
-        super(FPSModel, self).__init__(position)
-        self.type = MODEL_FPS
-        self.counter = counter
-        self.currentFPS = 0
+class TextModel(Model):
+    def __init__(self, evtMngr, position, fontSize=32, fn=None):
+        Model.__init__(self, position)
+        self.type = MODEL_TEXT
         self.colour = SDL_Colour(255, 255, 255, 255)
         self.fontFilename = "fonts/DejaVuSerif.ttf"
+        self.text = " "
+        self.fn = fn
+        evtMngr.attachHandler(E_ON_DRAW, self.onDraw)
 
         if not sdlttf.TTF_WasInit():
             sdlttf.TTF_Init()
 
         self.ttfFont = sdlttf.TTF_OpenFont(self.fontFilename, fontSize)
-        if self.ttfFont is None:
-            raise TTF_GetError()
+        try: self.ttfFont.contents
+        except: raise Exception(sdlttf.TTF_GetError())
 
         self.surfacep = self.getFontSurface()
+
+    def getModelToWorldMat(self):
+        mat = identityMatrix()
+        mat[0,0] = self.surfacep.contents.w
+        mat[1,1] = self.surfacep.contents.h
+        mat[0,3] = self.position.x
+        mat[1,3] = self.position.y
+        return mat
+
+    def getFontSurface(self):
+        try: SDL_FreeSurface(self.surfacep)
+        except AttributeError: pass
+        
+        surfacep = sdlttf.TTF_RenderText_Blended(self.ttfFont, 
+            self.text, self.colour)
+        try: surfacep.contents
+        except: raise Exception(sdlttf.TTF_GetError())
+        return surfacep
+
+    def onDraw(self):
+        try: self.text = self.fn(None)
+        except: self.text = " "
+        self.surfacep = self.getFontSurface()
+
+class FPSModel(TextModel):
+    def __init__(self, evtMngr, position, counter, fontSize=32):
+        self.counter = counter
+        self.currentFPS = 0
+        TextModel.__init__(self, evtMngr, position, fontSize)
 
     def onDraw(self):
         self.counter.updateCounter()
@@ -83,14 +114,6 @@ class FPSModel(Model):
         
         surfacep = sdlttf.TTF_RenderText_Blended(self.ttfFont, 
             str(self.currentFPS), self.colour)
-        if surfacep is None:
-            raise TTF_GetError()
+        try: surfacep.contents
+        except: raise Exception(sdlttf.TTF_GetError())
         return surfacep
-
-    def getModelToWorldMat(self):
-        mat = identityMatrix()
-        mat[0,0] = self.surfacep.contents.w
-        mat[1,1] = self.surfacep.contents.h
-        mat[0,3] = self.position.x + self.surfacep.contents.w
-        mat[1,3] = self.position.y + self.surfacep.contents.h
-        return mat

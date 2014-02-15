@@ -13,7 +13,7 @@ class Game():
 
         self.evtMngr = EventManager()
         self.scene = Scene(self.evtMngr)
-        self.renderer = Renderer(800, 600)
+        self.renderer = Renderer(self.evtMngr, 800, 600)
 
         self.evtMngr.attachHandler(E_SDL_EVENT, self.onSDLEvent)
 

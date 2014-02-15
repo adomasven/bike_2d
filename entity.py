@@ -8,7 +8,7 @@ PLAYER = 1
 BOX = 2
 CIRCLE = 3
 LEVEL_BLOCK = 10
-HUD_FPS = 100
+HUD_ELEM = 100
 
 class Entity(object):
     ID_COUNT = 0

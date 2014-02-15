@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 E_SDL_EVENT = 0
+E_ON_DRAW = 1
 
 class EventManager(object):
     continueHandling = True

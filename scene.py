@@ -9,21 +9,22 @@ class Scene(object):
         self.sceneObjects = []
         self.hudObjects = []
 
-        self.sim_dt = 1000.0 / 100.0 #100 per second
+        self.sim_dt = 1000.0 / 120.0 #100 per second
         self.timeAcc = 0
 
-        entFact = EntityFactory(self.sceneObjects)
+        entFact = EntityFactory(self.sceneObjects, evtMngr)
 
-        self.player = entFact.CreateNewPlayer(evtMngr, 0, 0, 45)
+        self.player = entFact.CreatePlayer(0, 0, 45)
 
-        entFact.CreateNewLevelBlock(-200, -200, 400, 20)
-        entFact.CreateNewLevelBlock(-300, 200, 600, 20)
-        entFact.CreateNewLevelBlock(-300, -300, 600, 20, 45)
-        entFact.CreateNewLevelBlock(-300, -300, 600, 20, -45)
+        entFact.CreateLevelBlock(-200, -200, 400, 20)
+        entFact.CreateLevelBlock(-300, 200, 600, 20)
+        entFact.CreateLevelBlock(-300, -300, 600, 20, 45)
+        entFact.CreateLevelBlock(-300, -300, 600, 20, -45)
 
         entFact.target = self.hudObjects
-        self.hudObjects.append(
-                entFact.CreateNewFPSMeter()
+        entFact.CreateFPSMeter()
+        entFact.CreateParameterMonitor(
+            lambda f: str(self.player.contacts.resVec)
             )
 
     def update(self):

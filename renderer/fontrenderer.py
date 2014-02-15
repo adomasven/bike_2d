@@ -12,10 +12,10 @@ from glhelpers import *
 class FontRenderer(ModelRenderer):
     vertexData = array([
          #Uses same coordinates for texture and vertices
-        -1, -1, 0, 1,
-        -1,  1, 0, 0,
-         1,  1, 1, 0,
-         1, -1, 1, 1
+         0,  0, 0, 1,
+         0,  1, 0, 0,
+         1, 1, 1, 0,
+         1, 0, 1, 1
         ], 'f4')
 
     indices = array([
@@ -53,7 +53,8 @@ class FontRenderer(ModelRenderer):
                 self.idxBuff.bind()
         
 
-    def draw(self, surface, model):
+    def draw(self, model):
+        surface = model.surfacep.contents
         with self.program:
             with self.vao:
                 glActiveTexture(GL_TEXTURE0)
@@ -70,12 +71,12 @@ class FontRenderer(ModelRenderer):
                 glUniform1i(self.glTexUnif, 0)
 
                 mat = model.getModelToWorldMat()
-                mat[0, 0] /= self.renderer.winWidth
-                mat[1, 1] /= self.renderer.winHeight
-                mat[0, 3] = (mat[0, 3] - self.renderer.winWidth) / \
-                    self.renderer.winWidth
-                mat[1, 3] = (mat[1, 3] - self.renderer.winHeight) / \
-                    self.renderer.winHeight
+                winWidth = self.renderer.winWidth / 2
+                winHeigth = self.renderer.winHeight / 2
+                mat[0, 0] /= winWidth
+                mat[1, 1] /= winHeigth
+                mat[0, 3] = (mat[0, 3] - winWidth) / winWidth
+                mat[1, 3] = (mat[1, 3] - winHeigth) / winHeigth
                 glUniformMatrix4fv(self.transformMatUnif, 1, True, mat)
                 glDrawElements(GL_TRIANGLES, len(self.indices), 
                     GL_UNSIGNED_SHORT, self.idxBuff)

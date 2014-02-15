@@ -1,4 +1,4 @@
 from .renderer import *
 from .boxrenderer import *
-from .fpsrenderer import *
+from .fontrenderer import *
 from .circlerenderer import *

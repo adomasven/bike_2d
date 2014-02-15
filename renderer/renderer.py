@@ -4,18 +4,20 @@ from OpenGL.GL import *
 from sdl2 import *
 from model import *
 from __init__ import *
+from eventmanager import *
 
 class Renderer(object):
     
     modelRenderers = {
         MODEL_BOX:'boxRenderer',
-        MODEL_FPS:'FPSRenderer',
-        MODEL_CIRCLE:'circleRenderer'
+        MODEL_CIRCLE:'circleRenderer',
+        MODEL_TEXT:'fontRenderer',
     }
 
-    def __init__(self, winWidth=800, winHeight=600):
+    def __init__(self, evtMngr, winWidth=800, winHeight=600):
         self.winWidth = winWidth
         self.winHeight = winHeight
+        self.evtMngr = evtMngr
         self.time = SDL_GetTicks()
         self.timeAcc = 0
         self.limitFPS = False
@@ -46,7 +48,7 @@ class Renderer(object):
         self.camToClipMat = self.getCamToClipMat()
 
         self.boxRenderer = BoxRenderer(self)
-        self.FPSRenderer = FPSRenderer(self)
+        self.fontRenderer = FontRenderer(self)
         self.circleRenderer = CircleRenderer(self)
 
     def getCamToClipMat(self):
@@ -70,6 +72,7 @@ class Renderer(object):
 
 
     def draw(self, view):
+        self.evtMngr.queueEvent(E_ON_DRAW)
         if self.allowRendering():
             self.swapBuffer()
             self.drawObjects(view.sceneObjects)
@@ -77,9 +80,6 @@ class Renderer(object):
 
     def drawObjects(self, objects):
         for renderer, models in self.buildRenderingQueue(objects).iteritems():
-            # call onDraw methods if implemented
-            try: map(models[0].__class__.onDraw, models)
-            except AttributeError: pass
             
             modelRenderer = getattr(self, self.modelRenderers[renderer])
             modelRenderer.drawModels(models)
