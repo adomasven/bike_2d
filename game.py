@@ -2,8 +2,6 @@
 
 from scene import *
 from renderer import Renderer
-from hud import *
-from collision import *
 from eventmanager import *
 import sdl2.ext as sdl2ext
 from sdl2 import *
@@ -15,7 +13,6 @@ class Game():
 
         self.evtMngr = EventManager()
         self.scene = Scene(self.evtMngr)
-        self.hud = HUD()
         self.renderer = Renderer(800, 600)
 
         self.evtMngr.attachHandler(E_SDL_EVENT, self.onSDLEvent)
@@ -26,10 +23,8 @@ class Game():
             self.queueSDLEvents()
 
             self.evtMngr.handleEvents()
-            if(self.scene.update()):
-                CollisionResolver.resolveCollisions(self.scene.viewObjects)
-            self.hud.update()
-            self.renderer.draw([self.scene, self.hud])
+            self.scene.update()
+            self.renderer.draw(self.scene)
 
         return 0
 

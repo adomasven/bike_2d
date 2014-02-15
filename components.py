@@ -88,11 +88,11 @@ class Input(Component):
         if eType == SDL_KEYDOWN:
             try: 
                 attr = setattr(self, self.config[e.key.keysym.sym], True)
-            except AttributeError: pass
+            except (AttributeError, KeyError): pass
         if eType == SDL_KEYUP:
             try: 
                 attr = setattr(self, self.config[e.key.keysym.sym], False)
-            except AttributeError: pass
+            except (AttributeError, KeyError): pass
 
     def update(self, ent, dt):
         if self.move: 

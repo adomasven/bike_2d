@@ -68,28 +68,24 @@ class Renderer(object):
         return False
 
 
-    def draw(self, views):
+    def draw(self, view):
         if self.allowRendering():
             self.swapBuffer()
-            if isinstance(views, list):
-                for v in views:
-                    self.drawView(v)
-            else:
-                self.drawView(views)
+            self.drawObjects(view.viewObjects)
+            self.drawObjects(view.hudObjects)
 
-    def drawView(self, view):
-        for renderer, models in self.buildRenderingQueue(view).iteritems():
+    def drawObjects(self, objects):
+        for renderer, models in self.buildRenderingQueue(objects).iteritems():
             # call onDraw methods if implemented
             try: map(models[0].__class__.onDraw, models)
             except AttributeError: pass
             
-
             modelRenderer = getattr(self, self.modelRenderers[renderer])
             modelRenderer.drawModels(models)
 
-    def buildRenderingQueue(self, scene):
+    def buildRenderingQueue(self, objects):
         queue = dict()
-        for o in scene.viewObjects:
+        for o in objects:
             try: 
                 try: queue[o.model.type].append(o.model)
                 except: queue[o.model.type] = [o.model]

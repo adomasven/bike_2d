@@ -60,10 +60,10 @@ class CircleModel(Model):
 
 class FPSModel(Model):
     def __init__(self, counter, position, fontSize = 32):
+        super(FPSModel, self).__init__(position)
         self.type = MODEL_FPS
         self.counter = counter
         self.currentFPS = 0
-        self.position = position
         self.colour = SDL_Colour(255, 255, 255, 255)
         self.fontFilename = "fonts/DejaVuSerif.ttf"
 

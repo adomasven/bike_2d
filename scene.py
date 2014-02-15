@@ -1,17 +1,20 @@
 #!/usr/bin/env python2
 
-from view import View
 from entityfactory import *
+from collision import *
 
-class Scene(View):
+class Scene(object):
     def __init__(self, evtMngr):
-        super(Scene, self).__init__()
+        self.time = timer.SDL_GetTicks()
+        self.viewObjects = []
+        self.hudObjects = []
 
         self.sim_dt = 1000.0 / 100.0 #100 per second
         self.timeAcc = 0
 
         entFact = EntityFactory
-        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 100, -150))
+
+        self.viewObjects.append(entFact.CreateNewPlayer(evtMngr, 100, -150, 20))
         self.viewObjects.append(
             entFact.CreateNewLevelBlock(-200, -200, 400, 20))
         self.viewObjects.append(
@@ -21,13 +24,24 @@ class Scene(View):
         self.viewObjects.append(
             entFact.CreateNewLevelBlock(-300, -300, 600, 20, -45))
 
+        self.hudObjects.append(
+                entFact.CreateNewFPSMeter()
+            )
+
     def update(self):
         updated = False
         a = self.allowUpdate()
         while a.next():
-            super(Scene, self).update(self.sim_dt)
+            self.updateObjects(self.viewObjects, self.sim_dt)
+            self.updateObjects(self.hudObjects, self.sim_dt)
             updated = True
-        return updated
+        CollisionResolver.resolveCollisions(self.viewObjects)
+
+    def updateObjects(self, objects, dt=None):
+        if not dt: dt = self.getDt()
+
+        for o in objects:
+            o.update(dt / 1000)
 
 
     def allowUpdate(self):
@@ -38,3 +52,9 @@ class Scene(View):
             self.timeAcc -= self.sim_dt
             yield True
         yield False
+
+    def getDt(self):
+        newTime = timer.SDL_GetTicks()
+        dt = newTime - self.time
+        self.time = newTime
+        return dt
