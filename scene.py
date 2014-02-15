@@ -9,7 +9,7 @@ class Scene(object):
         self.sceneObjects = []
         self.hudObjects = []
 
-        self.sim_dt = 1000.0 / 60.0 #100 per second
+        self.sim_dt = 1000.0 / 100.0 #100 per second
         self.timeAcc = 0
 
         entFact = EntityFactory(self.sceneObjects)
