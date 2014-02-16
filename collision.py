@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+from copy import deepcopy
+
 from math import sqrt
 from vec2d import Vec2d
 from basecomponent import *
@@ -17,7 +19,8 @@ def collides(this, other):
 
 class Bounds(object):
     def intersects(self, other):
-        ohb = other.hitbox
+        try: ohb = other.hitbox
+        except KeyError: return False
         try: return self.intersectsPoly(ohb.getBoundingPoly(other))
         except AttributeError: pass
         try: return self.intersectsCirc(ohb.getBoundingCircle(other))
@@ -73,7 +76,7 @@ class BoundingCircle(Bounds):
 
     def intersectsCirc(self, other):
         minResVec = other.pos - self.pos
-        if minResVec.get_length_sqrd() - (self.r + other.r)**2 > 0:
+        if minResVec.get_length_sqrd() - (self.r + other.r)**2 < 0:
             return minResVec - (self.r + other.r)
         return False
 
@@ -139,12 +142,12 @@ class CollisionResolver(object):
         for contact in contacts:
             this, other, minResVec = contact.this, contact.other, contact.minResVec
             try: 
-                this.contacts.add(Collider(other, minResVec))
+                this.contacts.add(Collider(deepcopy(other), minResVec))
                 needResolution.add(this)
             except: pass
 
             try: 
-                other.contacts.add(Collider(this, -minResVec))
+                other.contacts.add(Collider(deepcopy(this), -minResVec))
                 needResolution.add(other)
             except: pass
         return needResolution

@@ -9,16 +9,13 @@ class EntityFactory(object):
         self.evtMngr = evtMngr
     
     def CreatePlayer(self, x=0, y=0, w=10, h=10):
-        e = self.CreateCircle(x, y, w)
+        e = Entity(self.target)
         e.type = PLAYER
-        e.addComp(Velocity())
-        e.addComp(Gravity())
-        e.addComp(Contacts())
-        e.addComp(Engine())
         e.addComp(Input(self.evtMngr))
-        e.addComp(Breaks())
-        e.updateFirst = ['velocity', 'engine', 'breaks']
-        e.updateLast = ['contacts']
+        fw = self.CreateWheel(x - 50, y)
+        bw = self.CreateWheel(x + 50, y)
+        e.addComp(Spring(fw, bw))
+        e.addComp(Chassis(fw, bw))
         return e
 
     def CreateLevelBlock(self,x=0, y=0, width=10, heigth=10, angle=0):
@@ -26,9 +23,26 @@ class EntityFactory(object):
         e.type = LEVEL_BLOCK
         return e
 
+    def CreateWheel(self, x=0, y=0, r=20):
+        e = self.CreateCircle(x, y, r)
+        e.type = WHEEL
+        e.addComp(Velocity())
+        e.addComp(Gravity())
+        e.addComp(Contacts())
+        e.addComp(Engine())
+        e.addComp(Breaks())
+        e.physprops.mass = 7
+        e.physprops.grip = 1
+        e.physprops.rotFriction = .01
+        e.physprops.restitution = .4
+        e.updateFirst = ['velocity', 'engine', 'breaks']
+        e.updateLast = ['contacts']
+        return e
+
     def CreateCircle(self,x=0, y=0, r=10):
         e = Entity(self.target)
         e.type = CIRCLE
+        e.addComp(PhysicalProperties())
         e.addComp(Position(x, y))
         e.addComp(CircleModel(e.position, r))
         e.addComp(CircleHitbox(r))
@@ -37,6 +51,7 @@ class EntityFactory(object):
     def CreateBox(self,x=0, y=0, width=10, heigth=10, angle=0):
         e = Entity(self.target)
         e.type = BOX
+        e.addComp(PhysicalProperties())
         e.addComp(Position(x, y, radians(angle)))
         e.addComp(BoxModel(e.position, width, heigth))
         e.addComp(Hitbox(width, heigth))

@@ -31,13 +31,14 @@ class BoxModel(Model):
         self.width, self.height = width, height
 
     def getModelToWorldMat(self):
-        transScal = identityMatrix()
-        transScal[0,0] = self.width
-        transScal[1,1] = self.height
-        transScal[0,3] = self.position.x
-        transScal[1,3] = self.position.y
+        trans = identityMatrix()
+        scale = identityMatrix()
+        scale[0,0] = self.width
+        scale[1,1] = self.height
+        trans[0,3] = self.position.x
+        trans[1,3] = self.position.y
         rot = rotationMatrix(self.position.angle)
-        return rot.dot(transScal)
+        return trans.dot(rot.dot(scale))
 
 class CircleModel(Model):
     def __init__(self, position, r):

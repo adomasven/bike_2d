@@ -1,28 +1,27 @@
 #!/usr/bin/env python2
 
+from copy import deepcopy
 from components import *
-from operator import attrgetter
 
 ENTITY = 0
 PLAYER = 1
 BOX = 2
 CIRCLE = 3
+WHEEL = 4
 LEVEL_BLOCK = 10
 HUD_ELEM = 100
 
 class Entity(object):
-    ID_COUNT = 0
 
     def __init__(self, target):
         self.updateFirst = []
         self.updateLast = []
-        self.id = Entity.ID_COUNT
         self.comps = dict()
-        Entity.ID_COUNT += 1
+        self.type = ENTITY
         try: target.append(self)
         except AttributeError: pass
 
-    def __hash__(self): return self.id
+    def __hash__(self): return id(self)
 
     def __eq__(self, other):
         return self is other
@@ -33,8 +32,14 @@ class Entity(object):
             if len(self.comps[name]) <= 1:
                 return self.comps[name][0]
 
+    def __deepcopy__(self, memo):
+        copy = type(self)(None)
+        memo[id(self)] = copy
+        copy.comps = deepcopy(self.comps, memo)
+        return copy
+
     def __str__(self):
-        return "Entity #" + str(self.id)
+        return "Entity #" + str(id(self)) + " " + "type: " + str(self.type)
 
     def update(self, dt):
         for compType in self.updateFirst:

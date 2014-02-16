@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+from __future__ import division
+
 from entityfactory import *
 from collision import *
 
@@ -9,7 +11,7 @@ class Scene(object):
         self.sceneObjects = []
         self.hudObjects = []
 
-        self.sim_dt = 1000.0 / 120.0 #100 per second
+        self.sim_dt = 1.0 / 60.0 #100 per second
         self.timeAcc = 0
 
         entFact = EntityFactory(self.sceneObjects, evtMngr)
@@ -18,8 +20,8 @@ class Scene(object):
 
         entFact.CreateLevelBlock(-200, -200, 400, 20)
         entFact.CreateLevelBlock(-300, 200, 600, 20)
-        entFact.CreateLevelBlock(-300, -300, 600, 20, 45)
-        entFact.CreateLevelBlock(-300, -300, 600, 20, -45)
+        entFact.CreateLevelBlock(-400, -20, 600, 20, -45)
+        entFact.CreateLevelBlock(0, -420, 600, 20, 45)
 
         entFact.target = self.hudObjects
         entFact.CreateFPSMeter()
@@ -28,19 +30,18 @@ class Scene(object):
             )
 
     def update(self):
-        updated = False
         a = self.allowUpdate()
         while a.next():
             self.updateObjects(self.sceneObjects, self.sim_dt)
             self.updateObjects(self.hudObjects, self.sim_dt)
-            updated = True
-        CollisionResolver.resolveCollisions(self.player, self.sceneObjects)
+            for w in self.player.chassis.wheels:
+                CollisionResolver.resolveCollisions(w, self.sceneObjects)
 
     def updateObjects(self, objects, dt=None):
         if not dt: dt = self.getDt()
 
         for o in objects:
-            o.update(dt / 1000)
+            o.update(dt)
 
 
     def allowUpdate(self):
@@ -56,4 +57,4 @@ class Scene(object):
         newTime = timer.SDL_GetTicks()
         dt = newTime - self.time
         self.time = newTime
-        return dt
+        return dt / 1000

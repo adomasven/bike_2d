@@ -20,7 +20,7 @@ class Renderer(object):
         self.evtMngr = evtMngr
         self.time = SDL_GetTicks()
         self.timeAcc = 0
-        self.limitFPS = False
+        self.limitFPS = True
         self.fpsCap = 60.0
 
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -72,8 +72,8 @@ class Renderer(object):
 
 
     def draw(self, view):
-        self.evtMngr.queueEvent(E_ON_DRAW)
         if self.allowRendering():
+            self.evtMngr.queueEvent(E_ON_DRAW)
             self.swapBuffer()
             self.drawObjects(view.sceneObjects)
             self.drawObjects(view.hudObjects)
