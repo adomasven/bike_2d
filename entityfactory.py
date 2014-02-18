@@ -12,18 +12,18 @@ class EntityFactory(object):
     def CreatePlayer(self, x=0, y=0, w=10, h=10):
         fw = self.CreateWheel(x + 50, y)
         bw = self.CreateWheel(x - 50, y)
-        # bikerim = self.CreateWheel(x, y + 20)
-        # bikerim.delComp('hitbox')
-        # bikerim.physprops.mass = 10
+        bikerim = self.CreateWheel(x, y + 20)
+        bikerim.delComp('hitbox')
+        bikerim.physprops.mass = 10
         e = Entity(self.drawTarget, self.updateTarget)
         e.type = PLAYER
         e.addComp(Input(self.evtMngr))
-        # e.addComp(Spring(fw, bikerim, 65, .5), True)
-        # e.addComp(Spring(bikerim, bw, 65, .5), True)
-        # e.addComp(Spring(fw, bw, resistence=.5), True)
+        # e.addComp(Spring(fw, bikerim, 65, 1), True)
+        # e.addComp(Spring(bikerim, bw, 65, 1), True)
+        e.addComp(Spring(fw, bw, resistence=1), True)
         e.addComp(Chassis(fw, bw))
-        # e.chassis.wheels += [bikerim]
-        # e.updateFirst += ['spring']
+        e.chassis.wheels += [bikerim]
+        e.updateLast += ['spring']
         return e
 
     def CreateLevelBlock(self,x=0, y=0, width=10, heigth=10, angle=0):
@@ -42,8 +42,8 @@ class EntityFactory(object):
         e.physprops.mass = 4
         e.physprops.grip = 1
         e.physprops.rotFriction = .01
-        e.physprops.restitution = .1
-        e.updateFirst += ['engine', 'contacts', 'breaks', 'forces']
+        e.physprops.restitution = 0
+        e.updateFirst += ['engine', 'contacts', 'forces', 'breaks', ]
         e.updateLast += ['velocity']
         return e
 

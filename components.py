@@ -25,10 +25,8 @@ class Spring(Component):
         dist = (self.ent1.position - self.ent2.position)
         dist.length -= self.length
         dist.length *= self.resistence
-        ent1.position -= dist * (1 - mConst)
-        ent1.velocity -= dist / dt * (1 - mConst)
-        ent2.position += dist * mConst
-        ent2.velocity += dist / dt * mConst
+        ent1.forces.addAcc(-dist / dt**2 * (1-mConst))
+        ent2.forces.addAcc(dist / dt**2 * (mConst))
 
 class Chassis(Component):
     def __init__(self, frontWheel, backWheel, backDrive=True):
@@ -114,28 +112,27 @@ class Position(Vec2d, Component):
     #             self.y -= 600
     #     except KeyError: pass
 
-
 class Velocity(Vec2d, Component):
     def __init__(self, x=0, y=0, maxrps=21):
         Vec2d.__init__(self, x, y)
-        self._angularVelocity = 0
+        self._rps = 0
         self.maxrps = maxrps
 
     @property
-    def angularVelocity(self):
-        return self._angularVelocity
-    @angularVelocity.setter
-    def angularVelocity(self, value):
-        if value > self.maxrps * pi:
-            self._angularVelocity = self.maxrps * pi
-        elif value < -self.maxrps * pi:
-            self._angularVelocity = -self.maxrps * pi
-        else: self._angularVelocity = value
+    def rps(self):
+        return self._rps
+    @rps.setter
+    def rps(self, value):
+        if value > self.maxrps:
+            self._rps = self.maxrps
+        elif value < -self.maxrps:
+            self._rps = -self.maxrps
+        else: self._rps = value
     
     def __deepcopy__(self, memo):
         copy = type(self)(self.x, self.y, self.maxrps)
         memo[id(self)] = copy
-        copy._angularVelocity = self._angularVelocity
+        copy._rps = self._rps
         return copy
 
     def update(self, ent, dt):
@@ -145,16 +142,14 @@ class Velocity(Vec2d, Component):
         self -= self.dot(surface) * surface * ent.forces.lockCoef
         self -= self.dot(surface) * -surface * ent.forces.lockCoef
         ent.position += self * dt
-        ent.position.angle += self.angularVelocity * dt
+        ent.position.angle += self.rps * dt * 2*pi
         if ent.contacts.isColliding:
-            ent.position += resVec * (ent.contacts.length)
-
+                    ent.position += resVec * (ent.contacts.length)
 
         
 class Forces(Vec2d, Component):
     def __init__(self, x=0, y=-500):
         Vec2d.__init__(self, x, y)
-        self.angularSpeed = 0
         self.accDif = 0
         self.lockCoef = 0
 
@@ -164,11 +159,11 @@ class Forces(Vec2d, Component):
         resVec = ent.contacts.resVec
         surface = resVec.perpendicular()
         try: radius = ent.hitbox.r
-        except KeyError: radius = 0
+        except KeyError: radius = 1
 
         #update angular acc/speeds
         #designed to work with round objects
-        angularSpeed = ent.velocity.angularVelocity * radius / pi
+        angularSpeed = ent.velocity.rps * radius * 2*pi
         
         try:
             if ent.breaks.brk: 
@@ -179,15 +174,15 @@ class Forces(Vec2d, Component):
                 else:
                     angularSpeed -= breakSpeed*(angularSpeed/abs(angularSpeed))
         except AttributeError: pass
-        ent.velocity.angularVelocity = (
-            angularSpeed * pi / radius * (1 - ent.physprops.rotFriction)
+        ent.velocity.rps = (
+            angularSpeed / radius /(2*pi) * (1 - ent.physprops.rotFriction)
         )
 
         # update directional forces/speeds
         acc = Vec2d(self) + self.accDif
         self.accDif = 0
         if ent.contacts.isColliding:
-            acc -= acc.dot(resVec) * resVec #* .82
+            acc -= acc.dot(resVec) * resVec * .82
             acc -= (
                 ent.velocity.dot(resVec) * resVec * 
                 (1 + ent.physprops.restitution) / dt
@@ -209,7 +204,7 @@ class Engine(Component):
     def update(self, ent, dt):
         if self.active:
             if self.acc:
-                ent.velocity.angularVelocity +=(
+                ent.velocity.rps +=(
                     self.force * self.rotation * dt
                 )
 
@@ -263,7 +258,7 @@ class Contacts(Component):
         v = ent.velocity
         surface = c.resVec.perpendicular()
         grip = ent.physprops.grip * c.other.physprops.grip
-        linearAngSpeed = ent.velocity.angularVelocity * ent.hitbox.r
+        linearAngSpeed = ent.velocity.rps * ent.hitbox.r * 2*pi
 
         #reaction speed
         N = abs(ent.forces.dot(c.resVec)) / dt
@@ -272,13 +267,12 @@ class Contacts(Component):
         Fspin = (linearAngSpeed - v.dot(surface)) * grip
         Fslide = (abs(Fspin) - N) * (1 - grip) if abs(Fspin) > N else 0
         if Fslide > 0: Fslide *= -Fspin/abs(Fspin)
-        print linearAngSpeed, v.dot(surface)
 
-        ent.velocity.angularVelocity += (
-            (Fslide * (1-ent.physprops.restitution) - Fspin/2) / ent.hitbox.r
+        ent.velocity.rps += (
+            (Fslide * (1-ent.physprops.restitution) - Fspin/2) /
+            (ent.hitbox.r * (2*pi))
         )
         ent.forces.addAcc(Fspin / dt * surface/2)
-        print Fspin / dt
 
     def add(self, collider):
         self.colliderList.append(collider)
