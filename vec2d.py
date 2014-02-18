@@ -258,6 +258,7 @@ class Vec2d(object):
         
     def __setlength(self, value):
         length = self.get_length()
+        length = length if length != 0 else 1
         self.x *= value/length
         self.y *= value/length
         self._cached_length_vec = self

@@ -10,32 +10,37 @@ class Scene(object):
         self.time = timer.SDL_GetTicks()
         self.sceneObjects = []
         self.hudObjects = []
+        self.updateEntities = []
 
         self.sim_dt = 1.0 / 60.0 #100 per second
         self.timeAcc = 0
 
-        entFact = EntityFactory(self.sceneObjects, evtMngr)
+        entFact = EntityFactory(evtMngr, self.sceneObjects, self.updateEntities)
 
         self.player = entFact.CreatePlayer(0, 0, 45)
 
-        entFact.CreateLevelBlock(-200, -200, 400, 20)
-        entFact.CreateLevelBlock(-300, 200, 600, 20)
+        entFact.CreateLevelBlock(-400, -210, 800, 20)
+        entFact.CreateLevelBlock(-400, 280, 800, 20)
+        entFact.CreateLevelBlock(-300, 180, 600, 20)
         entFact.CreateLevelBlock(-400, -20, 600, 20, -45)
         entFact.CreateLevelBlock(0, -420, 600, 20, 45)
 
-        entFact.target = self.hudObjects
+        entFact.CreateLevelBlock(-380, -300, 600, 20, 90)
+        entFact.CreateLevelBlock(400, -300, 600, 20, 90)
+
+        entFact.drawTarget = self.hudObjects
         entFact.CreateFPSMeter()
         entFact.CreateParameterMonitor(
-            lambda f: str(self.player.contacts.resVec)
+            lambda f: str(self.player.chassis.wheels[0].contacts.isColliding),
+            y=500
             )
 
     def update(self):
         a = self.allowUpdate()
         while a.next():
-            self.updateObjects(self.sceneObjects, self.sim_dt)
-            self.updateObjects(self.hudObjects, self.sim_dt)
+            self.updateObjects(self.updateEntities, self.sim_dt)
             for w in self.player.chassis.wheels:
-                CollisionResolver.resolveCollisions(w, self.sceneObjects)
+                CollisionResolver.resolveCollisions(w, self.updateEntities)
 
     def updateObjects(self, objects, dt=None):
         if not dt: dt = self.getDt()

@@ -2,6 +2,7 @@
 
 from __future__ import division
 from math import pi
+from copy import deepcopy
 
 from model import *
 from basecomponent import Component
@@ -11,19 +12,23 @@ from collision import BoundingBox, BoundingCircle, BoundingPolygon
 from eventmanager import *
 
 class Spring(Component):
-    def __init__(self, ent1, ent2, length=100, resistence=1):
+    def __init__(self, ent1, ent2, length=100, resistence=.1):
         self.length = length
         self.resistence = resistence
         self.ent1 = ent1
         self.ent2 = ent2
+        self.mConst = ent1.physprops.mass / (ent1.physprops.mass + ent2.physprops.mass)
 
     def update(self, ent, dt):
+        ent1, ent2 = self.ent1, self.ent2
+        mConst = self.mConst
         dist = (self.ent1.position - self.ent2.position)
         dist.length -= self.length
-        self.ent1.position += dist * self.resistence
-        self.ent2.position -= dist * self.resistence
-        self.ent1.velocity += dist * self.resistence / dt
-        self.ent2.velocity -= dist * self.resistence / dt
+        dist.length *= self.resistence
+        ent1.position -= dist * (1 - mConst)
+        ent1.velocity -= dist / dt * (1 - mConst)
+        ent2.position += dist * mConst
+        ent2.velocity += dist / dt * mConst
 
 class Chassis(Component):
     def __init__(self, frontWheel, backWheel, backDrive=True):
@@ -43,14 +48,13 @@ class Chassis(Component):
         self.backWheel.engine.acc = self.acc
         self.frontWheel.breaks.brk = self.brk
         self.backWheel.breaks.brk = self.brk
-        self.frontWheel.update(dt)
-        self.backWheel.update(dt)
 
-    def changeDir(self):
+        for w in self.wheels:
+            w.update(dt)
+
+    def changeDirection(self):
         self.frontWheel.engine.active = not self.frontWheel.engine.active
         self.backWheel.engine.active = not self.backWheel.engine.active
-        self.frontWheel.engine.rotation = -self.frontWheel.engine.rotation
-        self.backWheel.engine.rotation = -self.backWheel.engine.rotation
 
 class PhysicalProperties(Component):
     def __init__(
@@ -68,6 +72,15 @@ class PhysicalProperties(Component):
         self.grip = grip
         self.centreOfMass = centreOfMass
         self.restitution = restitution
+
+    def __str__(self):
+        string = "# " + str(id(self)) 
+        string += " " + str(self.mass)
+        string += " " + str(self.rotFriction)
+        string += " " + str(self.grip)
+        string += " " + str(self.centreOfMass)
+        string += " " + str(self.restitution)
+        return  string
 
 
 class Position(Vec2d, Component):
@@ -88,143 +101,187 @@ class Position(Vec2d, Component):
         memo[id(self)] = copy
         return copy
 
-    def update(self, ent, dt):
-        try: 
-            ent.velocity
-            while self.x < -400:
-                self.x += 800
-            while self.y < -300:
-                self.y += 600
-            while self.x > 400:
-                self.x -= 800
-            while self.y > 300:
-                self.y -= 600
-        except KeyError: pass
+    # def update(self, ent, dt):
+    #     try: 
+    #         ent.velocity
+    #         while self.x < -400:
+    #             self.x += 800
+    #         while self.y < -300:
+    #             self.y += 600
+    #         while self.x > 400:
+    #             self.x -= 800
+    #         while self.y > 300:
+    #             self.y -= 600
+    #     except KeyError: pass
 
 
 class Velocity(Vec2d, Component):
     def __init__(self, x=0, y=0, maxrps=21):
         Vec2d.__init__(self, x, y)
-        self._rps = 0
+        self._angularVelocity = 0
         self.maxrps = maxrps
 
     @property
-    def rps(self):
-        return self._rps
-    @rps.setter
-    def rps(self, value):
-        if value > self.maxrps:
-            self._rps = self.maxrps
-        elif value < -self.maxrps:
-            self._rps = -self.maxrps
-        else: self._rps = value
+    def angularVelocity(self):
+        return self._angularVelocity
+    @angularVelocity.setter
+    def angularVelocity(self, value):
+        if value > self.maxrps * pi:
+            self._angularVelocity = self.maxrps * pi
+        elif value < -self.maxrps * pi:
+            self._angularVelocity = -self.maxrps * pi
+        else: self._angularVelocity = value
     
     def __deepcopy__(self, memo):
         copy = type(self)(self.x, self.y, self.maxrps)
         memo[id(self)] = copy
+        copy._angularVelocity = self._angularVelocity
         return copy
 
     def update(self, ent, dt):
+        resVec = ent.contacts.resVec
+        surface = resVec.perpendicular()
+
+        self -= self.dot(surface) * surface * ent.forces.lockCoef
+        self -= self.dot(surface) * -surface * ent.forces.lockCoef
         ent.position += self * dt
-        ent.position.angle += self.rps * 2*pi * dt
+        ent.position.angle += self.angularVelocity * dt
+        if ent.contacts.isColliding:
+            ent.position += resVec * (ent.contacts.length)
+
+
         
-class Gravity(Vec2d, Component):
+class Forces(Vec2d, Component):
     def __init__(self, x=0, y=-500):
         Vec2d.__init__(self, x, y)
+        self.angularSpeed = 0
+        self.accDif = 0
+        self.lockCoef = 0
+
 
     def update(self, ent, dt):
-        ent.velocity += self * dt
+        self.lockCoef = 0
+        resVec = ent.contacts.resVec
+        surface = resVec.perpendicular()
+        try: radius = ent.hitbox.r
+        except KeyError: radius = 0
+
+        #update angular acc/speeds
+        #designed to work with round objects
+        angularSpeed = ent.velocity.angularVelocity * radius / pi
+        
+        try:
+            if ent.breaks.brk: 
+                breakSpeed = ent.breaks.grip * ent.breaks.decc * dt
+                if abs(angularSpeed) < breakSpeed:
+                    angularSpeed = 0
+                    self.lockCoef = ent.physprops.grip
+                else:
+                    angularSpeed -= breakSpeed*(angularSpeed/abs(angularSpeed))
+        except AttributeError: pass
+        ent.velocity.angularVelocity = (
+            angularSpeed * pi / radius * (1 - ent.physprops.rotFriction)
+        )
+
+        # update directional forces/speeds
+        acc = Vec2d(self) + self.accDif
+        self.accDif = 0
+        if ent.contacts.isColliding:
+            acc -= acc.dot(resVec) * resVec #* .82
+            acc -= (
+                ent.velocity.dot(resVec) * resVec * 
+                (1 + ent.physprops.restitution) / dt
+            )
+        ent.velocity += acc * dt
+
+    def addAcc(self, acc):
+        self.accDif += acc
 
 class Engine(Component):
     CW = -1
     CCW = 1
-    def __init__(self, power=200):
+    def __init__(self, force=50):
         self.active = True
         self.acc = False
         self.rotation = Engine.CW
-        self.power = power
+        self.force = force
 
     def update(self, ent, dt):
         if self.active:
             if self.acc:
-                ent.velocity.rps += self.power / ent.physprops.mass * dt * \
-                                    self.rotation
+                ent.velocity.angularVelocity +=(
+                    self.force * self.rotation * dt
+                )
 
 class Breaks(Component):
-    def __init__(self, strength=1):
-        self.strength = strength
+    def __init__(self, decc=100000, grip=1):
+        self.grip = grip
+        self.decc = decc
         self.brk = False
-
-    def update(self, ent, dt):
-        if self.brk:
-            ent.velocity.rps -= ent.velocity.rps * self.strength
 
 class Contacts(Component):
     def __init__(self):
-        self.colliders = []
-        self.rotFriction = 1
-        self.resVec = " "
+        self.colliderList = []
+        self.isColliding = False
+        self._resVec = Vec2d(0, 0)
+        self.length = 0
 
-    def resolveContacts(self, ent):
-        self.resVec = " "
-        vList = []
-        rpsList = []
-        for c in self.colliders:
-            v, rps = \
-                self.onCollision(ent, c, Vec2d(ent.velocity), ent.velocity.rps)
-            vList.append(v)
-            rpsList.append(rps)
-            self.resVec = "collision"
-        ent.velocity.set(sum(vList)/len(vList))
-        ent.velocity.rps = sum(rpsList)/len(rpsList)
-        self.colliders = []
+    @property
+    def resVec(self):
+        if self._resVec == None:
+            self._resVec = Vec2d(0, 0)
+            for c in self.colliderList:
+                self._resVec += c.resVec * c.length
+            self.length = self._resVec.normalize_return_length()
 
-    def onCollision(self, ent, collision, v, rps, dt=1/60):
-        c = collision
-        other = c.other
-        surface = c.resVec.perpendicular()
-        rotFriction = ent.physprops.rotFriction * other.physprops.rotFriction
-        grip = ent.physprops.grip*other.physprops.grip
-        restitution = ent.physprops.restitution
-        rps *= (1 - rotFriction)
-        linearAngSpeed = rps * 2*pi * ent.hitbox.r
-
-        #cancel sinking correction if breaking.
-        try: 
-            if v.length <= ent.gravity.length * dt*5 and ent.breaks.brk: 
-                v.length = v.length * (1 - grip)
-        except AttributeError: pass
-        #reaction force
-        N = c.resVec.dot(v)
-        #bounceback
-        v -= c.resVec * N * (1 + restitution)
-        ent.position += c.resVec * c.length - c.resVec * 8 * dt
-
-        #Spin force and slide friction force if left any from grip
-        Fspin = (linearAngSpeed - v.dot(surface)) / 2 * grip
-        Fslide = abs(N) - abs(Fspin) if abs(Fspin) > abs(N) else 0
-        Fslide *= (1 - grip)
-
-        #breaking applied fully, regardless of restitution
-        try:
-            if ent.breaks.brk:
-                restitution = 0
-        except AttributeError: pass
-
-        #Apply acceleration.
-        v += surface * (Fspin + Fslide)  * (1 - restitution)
-        rps -= (Fspin - abs(Fslide)) / (ent.hitbox.r * 2*pi) *\
-                 (1 - restitution)
-
-        return v, rps
-
-
-    def add(self, collider):
-        self.colliders.append(collider)
+        return self._resVec
+    @resVec.setter
+    def resVec(self, value):
+        self._resVec = value
+    
+    def __deepcopy__(self, memo):
+        copy = type(self)()
+        memo[id(self)] = copy
+        copy._resVec = self.resVec
+        copy.colliderList = deepcopy(self.colliderList)
+        copy.isColliding = self.isColliding
+        copy.length = self.length
+        return copy
 
     def update(self, ent, dt):
-        self.rotFrict = 1
-        self.resVec = " "
+        self.resVec = None
+        self.isColliding = False
+        if self.colliderList:
+            self.isColliding = True
+            self.resVec #update resVecVal
+            for c in self.colliderList:
+                self.resolveRotation(ent, c, dt)
+
+            self.colliderList = []
+
+    def resolveRotation(self, ent, c, dt):
+        v = ent.velocity
+        surface = c.resVec.perpendicular()
+        grip = ent.physprops.grip * c.other.physprops.grip
+        linearAngSpeed = ent.velocity.angularVelocity * ent.hitbox.r
+
+        #reaction speed
+        N = abs(ent.forces.dot(c.resVec)) / dt
+
+        #spin speed and slide speed if left any from grip
+        Fspin = (linearAngSpeed - v.dot(surface)) * grip
+        Fslide = (abs(Fspin) - N) * (1 - grip) if abs(Fspin) > N else 0
+        if Fslide > 0: Fslide *= -Fspin/abs(Fspin)
+        print linearAngSpeed, v.dot(surface)
+
+        ent.velocity.angularVelocity += (
+            (Fslide * (1-ent.physprops.restitution) - Fspin/2) / ent.hitbox.r
+        )
+        ent.forces.addAcc(Fspin / dt * surface/2)
+        print Fspin / dt
+
+    def add(self, collider):
+        self.colliderList.append(collider)
 
 class Hitbox(Vec2d, Component):
     def getBoundingPoly(self, ent):
@@ -274,6 +331,7 @@ class Input(Component):
 
         if self.changeDirection:
             ent.chassis.changeDirection()
+            self.changeDirection = False
 
         if self.brk: ent.chassis.brk = True
         else:        ent.chassis.brk = False

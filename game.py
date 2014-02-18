@@ -31,6 +31,8 @@ class Game():
     def onSDLEvent(self, eType, e):
         if eType == SDL_QUIT:
             self.running = False
+        if eType == SDL_KEYDOWN and e.key.keysym.sym == SDLK_ESCAPE:
+            self.running = False
 
     def queueSDLEvents(self):
         events = sdl2ext.get_events()

@@ -75,9 +75,9 @@ class BoundingCircle(Bounds):
         self.r = r
 
     def intersectsCirc(self, other):
-        minResVec = other.pos - self.pos
-        if minResVec.get_length_sqrd() - (self.r + other.r)**2 < 0:
-            return minResVec - (self.r + other.r)
+        # minResVec = other.pos - self.pos
+        # if minResVec.get_length_sqrd() - (self.r + other.r)**2 < 0:
+        #     return minResVec - (self.r + other.r)
         return False
 
     def intersectsBB(self, other):
@@ -132,25 +132,19 @@ class CollisionResolver(object):
         else:
             contacts = CollisionResolver.getCollisionsAll(this)
 
-        needResolution = CollisionResolver.addColliders(contacts)
-        for ent in needResolution:
-            ent.contacts.resolveContacts(ent)
+        CollisionResolver.addColliders(contacts)
 
     @staticmethod
     def addColliders(contacts):
-        needResolution = set()
         for contact in contacts:
             this, other, minResVec = contact.this, contact.other, contact.minResVec
             try: 
                 this.contacts.add(Collider(deepcopy(other), minResVec))
-                needResolution.add(this)
             except: pass
 
             try: 
                 other.contacts.add(Collider(deepcopy(this), -minResVec))
-                needResolution.add(other)
             except: pass
-        return needResolution
 
     @staticmethod
     def getCollisionsAll(entities):
