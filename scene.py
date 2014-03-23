@@ -12,12 +12,12 @@ class Scene(object):
         self.hudObjects = []
         self.updateEntities = []
 
-        self.sim_dt = 1.0 / 60.0 #100 per second
+        self.sim_dt = 1.0 / 100.0 #100 per second
         self.timeAcc = 0
 
         entFact = EntityFactory(evtMngr, self.sceneObjects, self.updateEntities)
 
-        self.player = entFact.CreatePlayer(0, 0, 45)
+        self.player = entFact.CreatePlayer(0, -10, 45)
 
         entFact.CreateLevelBlock(-400, -210, 800, 20)
         entFact.CreateLevelBlock(-400, 280, 800, 20)
